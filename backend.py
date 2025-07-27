@@ -425,6 +425,10 @@ class CurrencyConverter:
         return usd_value * rates[to_currency]
 
 
+
+def format_currency(amount, currency="GHS"):
+    return f"{currency} {amount:,.2f}"
+
 class ReceiptGenerator:
     @staticmethod
     def generate_receipt(transaction_data, account):
