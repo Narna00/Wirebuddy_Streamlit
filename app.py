@@ -9,8 +9,8 @@ from streamlit.components.v1 import html
 from io import StringIO
 
 # Configuration
-st.set_page_config(page_title="SmartBank", layout="centered", page_icon="🏦")
-st.title("SmartBank App")
+st.set_page_config(page_title="Wirebuddy", layout="centered", page_icon="🏦")
+st.title("Wirebuddy")
 
 # Error handling for database connection
 import sqlite3
@@ -650,8 +650,8 @@ atexit.register(cleanup)
 
 # Display version and footer
 st.sidebar.markdown("---")
-st.sidebar.markdown("**SmartBank v1.2**")
-st.sidebar.markdown("© 2025 SmartBank Inc.")
+st.sidebar.markdown("**Wirebuddy v1.2**")
+st.sidebar.markdown("© 2025 Wirebuddy Inc.")
 
 st.markdown("---")
 st.markdown(
