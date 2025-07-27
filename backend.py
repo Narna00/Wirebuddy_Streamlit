@@ -86,20 +86,6 @@ CREATE TABLE IF NOT EXISTS disbursements (
 ''')
 conn.commit()
 
-# Initialize default admin
-cursor.execute("SELECT * FROM accounts WHERE is_admin = 1")
-if not cursor.fetchone():
-    admin = Account(
-        name="Admin User",
-        account_number= st.secrets["admin_number"],
-        pin= st.secrets["admin_pin"],
-        username= st.secrets["admin_username"],
-        national_id="ADMIN000",
-        address="Bank Headquarters",
-        is_admin=True
-    )
-    admin.save_to_db()
-
 class Account:
     def __init__(self, name, account_number, pin, username, national_id, address,
                  balance=0.0, created_at=None, is_active=True, is_admin=False):
@@ -113,6 +99,20 @@ class Account:
         self.created_at = created_at or datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.is_active = is_active
         self.is_admin = is_admin
+
+    # Initialize default admin
+cursor.execute("SELECT * FROM accounts WHERE is_admin = 1")
+if not cursor.fetchone():
+    admin = Account(
+        name="Admin User",
+        account_number= st.secrets["admin_number"],
+        pin= st.secrets["admin_pin"],
+        username= st.secrets["admin_username"],
+        national_id="ADMIN000",
+        address="Bank Headquarters",
+        is_admin=True
+    )
+    admin.save_to_db()
 
     def save_to_db(self):
         cursor.execute(
