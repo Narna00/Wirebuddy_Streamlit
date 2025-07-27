@@ -660,7 +660,7 @@ st.markdown(
         <a href='https://twitter.com/yourhandle' target='_blank'>🐦 Twitter</a> |
         <a href='https://github.com/yourrepo' target='_blank'>💻 GitHub</a> |
         <a href='mailto:youremail@example.com'>📧 Contact</a>
-        <p style='font-size: 0.8em;'>© 2025 SmartBank. All rights reserved.</p>
+        <p style='font-size: 0.8em;'>© 2025 Wirebuddy. All rights reserved.</p>
     </div>
     """,
     unsafe_allow_html=True
