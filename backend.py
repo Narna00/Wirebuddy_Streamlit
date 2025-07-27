@@ -100,6 +100,13 @@ class Account:
         self.is_active = is_active
         self.is_admin = is_admin
 
+    def save_to_db(self):
+        cursor.execute(
+            "INSERT INTO accounts (account_number, name, pin, username, national_id, address, balance, created_at, is_active, is_admin) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (self.account_number, self.name, self.pin, self.username, self.national_id, self.address, self.balance, self.created_at, self.is_active, self.is_admin)
+        )
+        conn.commit()
+
     # Initialize default admin
 cursor.execute("SELECT * FROM accounts WHERE is_admin = 1")
 if not cursor.fetchone():
@@ -113,13 +120,6 @@ if not cursor.fetchone():
         is_admin=True
     )
     admin.save_to_db()
-
-    def save_to_db(self):
-        cursor.execute(
-            "INSERT INTO accounts (account_number, name, pin, username, national_id, address, balance, created_at, is_active, is_admin) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (self.account_number, self.name, self.pin, self.username, self.national_id, self.address, self.balance, self.created_at, self.is_active, self.is_admin)
-        )
-        conn.commit()
 
     @staticmethod
     def find_by_login(username, account_number, pin):
