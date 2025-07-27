@@ -107,20 +107,6 @@ class Account:
         )
         conn.commit()
 
-    # Initialize default admin
-cursor.execute("SELECT * FROM accounts WHERE is_admin = 1")
-if not cursor.fetchone():
-    admin = Account(
-        name="Admin User",
-        account_number= st.secrets["admin_number"],
-        pin= st.secrets["admin_pin"],
-        username= st.secrets["admin_username"],
-        national_id="ADMIN000",
-        address="Bank Headquarters",
-        is_admin=True
-    )
-    admin.save_to_db()
-
     @staticmethod
     def find_by_login(username, account_number, pin):
         cursor.execute(
@@ -373,7 +359,20 @@ if not cursor.fetchone():
         """, (goal_id, self.account_number))
         conn.commit()
         return cursor.rowcount > 0
-    
+
+    # Initialize default admin
+cursor.execute("SELECT * FROM accounts WHERE is_admin = 1")
+if not cursor.fetchone():
+    admin = Account(
+        name="Admin User",
+        account_number= st.secrets["admin_number"],
+        pin= st.secrets["admin_pin"],
+        username= st.secrets["admin_username"],
+        national_id="ADMIN000",
+        address="Bank Headquarters",
+        is_admin=True
+    )
+    admin.save_to_db()
 
 class FinanceChatbot:
     @staticmethod
