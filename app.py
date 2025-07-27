@@ -1,6 +1,6 @@
 # frontend.py
 import streamlit as st
-from backend_update import Account, CurrencyConverter, FinanceChatbot, ReceiptGenerator, verify_payment, initiate_deposit, initiate_withdrawal, verify_withdrawal
+from backend import Account, CurrencyConverter, FinanceChatbot, ReceiptGenerator, verify_payment, initiate_deposit, initiate_withdrawal, verify_withdrawal
 from datetime import datetime
 import time
 import pandas as pd
