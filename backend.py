@@ -527,7 +527,7 @@ def verify_payment(reference):
 
     # If successful and was not already credited, credit user's balance
     if status == 'success' and old_status != 'success':
-        from backend_update import Account
+        from backend import Account
         acct = Account.get_by_account_number(account_no)
         if acct:
             acct.deposit(amount)
