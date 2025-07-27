@@ -12,8 +12,6 @@ from io import StringIO
 st.set_page_config(page_title="SmartBank", layout="centered", page_icon="🏦")
 st.title("SmartBank App")
 
-db_url = st.secrets["bank.db"]
-
 # Error handling for database connection
 import sqlite3
 try:
