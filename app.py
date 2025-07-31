@@ -1059,6 +1059,19 @@ elif st.session_state.logged_in_user and st.session_state.page == "admin_panel" 
     
     with tab2:
         st.subheader("System Statistics")
+        st.markdown("---")
+        st.subheader("🔄 Replace database file")
+        uploaded_db = st.file_uploader(
+            "Upload new SQLite DB file",
+            type=["db"],
+            help="Uploading will overwrite the current bank.db. Changes are ephemeral on redeploy.")
+        if uploaded_db:
+            # Write the uploaded bytes directly to bank.db
+            with open("bank.db", "wb") as f:
+                f.write(uploaded_db.getbuffer())
+            st.success("✅ New database file uploaded! Please refresh the app to load changes.")
+
+
         
         if accounts:
             total_balance = sum(acc.balance for acc in accounts)
