@@ -466,7 +466,7 @@ elif st.session_state.logged_in_user and st.session_state.page == "home":
             <button>Read More</button>
         </div>
         </li>
-        <li class='item' style="background-image: url('https://cdn.pixabay.com/photo/2019/06/20/17/59/online-banking-4287719_1280.jpg')">
+        <li class='item' style="background-image: url('https://media.istockphoto.com/id/2179769227/photo/loan-and-lending-cash-for-asset-purchase-concept-digital-interface-featuring-loan-and.webp?b=1&s=612x612&w=0&k=20&c=0zaWGsC4mlxULh4xjvxEN-KvagynsDaq5r1Rr2dxtuQ=')">
         <div class='content'>
             <h2 class='title'>"Estrange Bond"</h2>
             <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
