@@ -209,9 +209,9 @@ if st.session_state.logged_in_user:
     nav_items = [
         ("🏠", "Dashboard"),
         ("👤", "Profile"),
-        ("💱", "₵ Converter"),
-        ("🎯", "Planner"),
-        ("💡", "Finbot")
+        ("💱", "Currency Converter"),
+        ("🎯", "Savings Goals"),
+        ("💡", "Financial Advice")
     ]
     
     if st.session_state.logged_in_user.is_admin:
