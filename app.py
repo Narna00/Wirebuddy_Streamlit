@@ -1582,4 +1582,23 @@ a {
   </div>
   <div class="backdrop"></div>
 </footer>
+<style>
+  /* Footer text → pure white */
+  footer, footer * {
+    color: #ffffff !important;
+  }
+
+  /* No gap above footer */
+  footer {
+    margin-top: 0 !important;
+    padding-top: 0 !important;   /* if you have any padding on the footer itself */
+  }
+
+  /* If your body or main container adds bottom margin/padding, zero it out */
+  .stApp > div:first-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+</style>
+
 """, unsafe_allow_html=True)
