@@ -221,9 +221,6 @@ def get_transaction_icon(txn_type):
 def format_currency(amount):
     return f"₵{abs(amount):,.2f}" if amount >= 0 else f"-₵{abs(amount):,.2f}"
 
-# Sidebar navigation
-from streamlit_option_menu import option_menu
-
 # ─── NAVIGATION ──────────────────────────────────────────────────────────────
 # ─── NEW NAVIGATION SYSTEM ──────────────────────────────────────────────────────
 if st.session_state.logged_in_user:
