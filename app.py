@@ -207,11 +207,11 @@ def format_currency(amount):
 if st.session_state.logged_in_user:
     # Define navigation items
     nav_items = [
-        ("🏠", "Dashboard"),
+        ("🏠", "Home"),
         ("👤", "Profile"),
-        ("💱", "Currency Converter"),
-        ("🎯", "Savings Goals"),
-        ("💡", "Financial Advice")
+        ("💱", "₵ Converter"),
+        ("🎯", "Planner"),
+        ("💡", "Finbot")
     ]
     
     if st.session_state.logged_in_user.is_admin:
@@ -322,7 +322,7 @@ elif st.session_state.page == "login":
             """, unsafe_allow_html=True)
 
 
-elif st.session_state.logged_in_user and st.session_state.page == "dashboard":
+elif st.session_state.logged_in_user and st.session_state.page == "home":
     user = st.session_state.logged_in_user
 
     
@@ -869,7 +869,7 @@ elif st.session_state.logged_in_user and st.session_state.page == "profile":
                 st.error(f"Error updating profile: {str(e)}")
 
 # Savings Goals Page
-elif st.session_state.logged_in_user and st.session_state.page == "savings_goals":
+elif st.session_state.logged_in_user and st.session_state.page == "planner":
     user = st.session_state.logged_in_user
     st.header("Savings Goals")
     
@@ -1305,7 +1305,7 @@ elif st.session_state.logged_in_user and st.session_state.page == "admin_panel" 
                 st.rerun()
  
 # Currency Converter Page
-elif st.session_state.logged_in_user and st.session_state.page == "currency_converter":
+elif st.session_state.logged_in_user and st.session_state.page == "₵_converter":
     st.subheader("Currency Converter")
     
     currencies = CurrencyConverter.SUPPORTED_CURRENCIES
@@ -1331,7 +1331,7 @@ elif st.session_state.logged_in_user and st.session_state.page == "currency_conv
     
     st.caption("ℹ Rates update every 24 hours. For investments, verify with your bank.")
 
-elif st.session_state.logged_in_user and st.session_state.page == "financial_advice":
+elif st.session_state.logged_in_user and st.session_state.page == "finbot":
     st.subheader("Financial Literacy Bot")
     
     user_input = st.text_input("Ask me about saving, investing, or debt:")
