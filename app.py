@@ -459,14 +459,14 @@ elif st.session_state.logged_in_user and st.session_state.page == "home":
 
     <main>
     <ul class='slider'>
-        <li class='item' style="background-image: url('https://cdn.pixabay.com/photo/2019/06/20/17/59/online-banking-4287719_1280.jpg')">
+        <li class='item' style="background-image: url('https://media.istockphoto.com/id/2198966747/photo/couple-closing-real-estate-contract-with-real-estate-agent.jpg?s=1024x1024&w=is&k=20&c=Xs0AKdbMB9nXlhkPY_O0_POt0Zf7cTCe5gv5bjJhm4w=')">
         <div class='content'>
             <h2 class='title'>"Lossless Youths"</h2>
             <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
             <button>Read More</button>
         </div>
         </li>
-        <li class='item' style="background-image: url('https://images.unsplash.com/photo-1616803140344-6682afb13cda?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OXx8YmFua2luZ3xlbnwwfDB8MHx8fDI%3D')">
+        <li class='item' style="background-image: url('https://cdn.pixabay.com/photo/2019/06/20/17/59/online-banking-4287719_1280.jpg')">
         <div class='content'>
             <h2 class='title'>"Estrange Bond"</h2>
             <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
