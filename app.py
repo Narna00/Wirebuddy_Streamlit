@@ -1581,7 +1581,7 @@ a {
     <p>Partner with us</p>
   </div>
   <div class="backdrop"></div>
-</footer>
+
 <style>
   /* Footer text → pure white */
   footer, footer * {
@@ -1601,4 +1601,6 @@ a {
   }
 </style>
 
+  
+</footer>
 """, unsafe_allow_html=True)
