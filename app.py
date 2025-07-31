@@ -487,7 +487,7 @@ elif st.session_state.logged_in_user and st.session_state.page == "home":
             <button>Read More</button>
         </div>
         </li>
-        <li class='item' style="background-image: url('https://github.com/Narna00/banking-system/blob/main/assets/8.png')">
+        <li class='item' style="background-image: url('assets/8.png')">
         <div class='content'>
             <h2 class='title'>"Urban Decay"</h2>
             <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
