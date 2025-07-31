@@ -542,7 +542,7 @@ def initialize_admin_account():
             print("Default admin created:", admin.username)
     except Exception as e:
         print(f"Error creating admin: {e}")
-
+initialize_admin_account()
 
 class CurrencyConverter:
     SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "KES", "GHS"]
