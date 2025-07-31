@@ -154,34 +154,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-def show_loading():
-    with st.spinner(""):
-        st.markdown("""
-            <div style='
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100px;
-            '>
-                <div class="loader"></div>
-            </div>
-            <style>
-                .loader {
-                    border: 5px solid #f3f3f3;
-                    border-top: 5px solid var(--primary);
-                    border-radius: 50%;
-                    width: 50px;
-                    height: 50px;
-                    animation: spin 1s linear infinite;
-                }
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-            </style>
-        """, unsafe_allow_html=True)
-        time.sleep(1)
-
 
 # Error handling for database connection
 import sqlite3
@@ -237,9 +209,9 @@ if st.session_state.logged_in_user:
     nav_items = [
         ("🏠", "Dashboard"),
         ("👤", "Profile"),
-        ("💱", "Currency Converter"),
-        ("🎯", "Savings Goals"),
-        ("💡", "Financial Advice")
+        ("💱", "₵ Converter"),
+        ("🎯", "Planner"),
+        ("💡", "Finbot")
     ]
     
     if st.session_state.logged_in_user.is_admin:
