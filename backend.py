@@ -521,16 +521,20 @@ class Account:
     # Initialize default admin
 cursor.execute("SELECT * FROM accounts WHERE is_admin = 1")
 if not cursor.fetchone():
-    admin = Account(
-        name="Admin User",
-        account_number="admin_number",
-        pin="admin_pin",
-        username="admin_username",
-        national_id="ADMIN000",
-        address="Bank Headquarters",
-        is_admin=True
-    )
-    admin.save_to_db()
+    try:
+        admin = Account(
+            name="Admin User",
+            account_number="admin_number",
+            pin="admin_pin",
+            username="admin_username",
+            national_id="ADMIN000",
+            address="Bank Headquarters",
+            is_admin=True
+        )
+        admin.save_to_db()
+        print("Default admin created")
+    except Exception as e:
+        print(f"Error creating admin: {e}")
 
 
 class CurrencyConverter:
