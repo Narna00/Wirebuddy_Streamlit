@@ -315,7 +315,7 @@ if st.session_state.page == "register":
 elif st.session_state.page == "login":
     col1, col2 = st.columns([1,2])
     with col1:
-        st.image("assets/wb.png", width=150)  # Add your logo
+        st.image("assets/wb.png", width=150)
         st.markdown("""
             <h2 style='color: #2563eb;'>Welcome Back</h2>
             <p style='color: #64748b;'>Securely access your accounts</p>
@@ -329,53 +329,44 @@ elif st.session_state.page == "login":
                 pin = st.text_input("PIN", type="password", placeholder="4-digit PIN", max_chars=4)
                 
                 if st.form_submit_button("Login", type="primary"):
-                    # Debug output (visible only in development)
-                    debug = False  # Set to False in production
-                    if debug:
-                        st.write("Attempting login with:", {
-                            "username": username,
-                            "account_number": account_number,
-                            "pin": pin
-                        })
-                    
-                    # Check for admin credentials first
-                    admin_credentials = {
-                        "username": "admin",
-                        "account_number": "0000000000",
-                        "pin": "0000"
+                    # Get admin credentials from secrets
+                    ADMIN_CREDS = {
+                        "username": st.secrets.get("admin_username"),
+                        "account_number": st.secrets.get("admin_number"),
+                        "pin": st.secrets.get("admin_pin")
                     }
                     
-                    if (username == admin_credentials["username"] and 
-                        account_number == admin_credentials["account_number"] and 
-                        pin == admin_credentials["pin"]):
-                        # Create admin account if doesn't exist
-                        cursor.execute("SELECT * FROM accounts WHERE username='admin'")
+                    # Check if admin login attempt
+                    is_admin_login = (
+                        username == ADMIN_CREDS["admin_username"] and
+                        account_number == ADMIN_CREDS["admin_number"] and
+                        pin == ADMIN_CREDS["admin_pin"]
+                    )
+                    
+                    if is_admin_login:
+                        # Verify or create admin account
+                        cursor.execute("SELECT * FROM accounts WHERE username=?", (ADMIN_CREDS["admin_username"],))
                         admin_account = cursor.fetchone()
                         
                         if not admin_account:
-                            admin = Account(
-                                name="Admin User",
-                                account_number="admin_number",
-                                pin="admin_pin",
-                                username="admin_username",
-                                national_id="ADMIN000",
-                                address="Bank Headquarters",
-                                is_admin=True
-                            )
-                            admin.save_to_db()
-                            st.success("Admin account created automatically")
-                        
-                        user = Account.find_by_login(username, account_number, pin)
-                    else:
-                        user = Account.find_by_login(username, account_number, pin)
+                            try:
+                                admin = Account(
+                                    name="Admin User",
+                                    account_number=ADMIN_CREDS["admin_number"],
+                                    pin=ADMIN_CREDS["admin_pin"],
+                                    username=ADMIN_CREDS["admin_username"],
+                                    national_id="ADMIN000",
+                                    address="Bank Headquarters",
+                                    is_admin=True
+                                )
+                                admin.save_to_db()
+                                st.success("Admin account initialized")
+                            except Exception as e:
+                                st.error(f"Failed to create admin account: {str(e)}")
+                                st.stop()
                     
-                    if debug:
-                        st.write("User found:", user)
-                        if user:
-                            st.write("User details:", {
-                                "is_admin": user.is_admin,
-                                "is_active": user.is_active
-                            })
+                    # Proceed with normal login flow
+                    user = Account.find_by_login(username, account_number, pin)
                     
                     if user:
                         if not user.is_active:
@@ -386,8 +377,6 @@ elif st.session_state.page == "login":
                             st.rerun()
                     else:
                         st.error("Invalid credentials. Please try again.")
-                        if debug:
-                            st.write("All accounts in system:", Account.get_all_accounts())
             
             st.markdown("---")
             st.markdown("""
