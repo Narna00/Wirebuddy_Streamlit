@@ -524,21 +524,22 @@ class Account:
         return cursor.rowcount > 0
 
 def initialize_admin_account():
-    """Ensure default admin account exists"""
+    """Ensure default admin account exists, seeded from Streamlit secrets."""
+    admin_cfg = st.secrets["admin"]
     try:
-        cursor.execute("SELECT * FROM accounts WHERE is_admin = 1")
+        cursor.execute("SELECT 1 FROM accounts WHERE is_admin = 1")
         if not cursor.fetchone():
             admin = Account(
                 name="Admin User",
-                account_number="admin_number",  # 10 digits
-                pin="admin_pin",                  # 4-digit PIN
-                username="admin_username",
+                account_number=admin_cfg["account_number"],  # from secrets
+                pin=admin_cfg["pin"],                        # from secrets
+                username=admin_cfg["username"],               # from secrets
                 national_id="ADMIN000",
                 address="Bank Headquarters",
                 is_admin=True
             )
             admin.save_to_db()
-            print("Default admin created")
+            print("Default admin created:", admin.username)
     except Exception as e:
         print(f"Error creating admin: {e}")
 
