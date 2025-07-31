@@ -530,9 +530,9 @@ def initialize_admin_account():
         if not cursor.fetchone():
             admin = Account(
                 name="Admin User",
-                account_number="0000000000",  # 10 digits
-                pin="0000",                  # 4-digit PIN
-                username="admin",
+                account_number="admin_number",  # 10 digits
+                pin="admin_pin",                  # 4-digit PIN
+                username="admin_username",
                 national_id="ADMIN000",
                 address="Bank Headquarters",
                 is_admin=True
@@ -854,27 +854,6 @@ class FraudDetector:
         except:
             return 0.0
 
-# Initialize default admin AFTER ML initialization
-def initialize_admin_account():
-    """Ensure default admin account exists"""
-    try:
-        cursor.execute("SELECT * FROM accounts WHERE is_admin = 1")
-        if not cursor.fetchone():
-            admin = Account(
-                name="Admin User",
-                account_number="admin_number",
-                pin="admin_pin",
-                username="admin_username",
-                national_id="ADMIN000",
-                address="Bank Headquarters",
-                is_admin=True
-            )
-            admin.save_to_db()
-            print("Default admin created")
-    except Exception as e:
-        print(f"Error creating admin: {e}")
-
-initialize_admin_account()
 
 class FinanceChatbot:
     def __init__(self):
