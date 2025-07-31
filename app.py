@@ -1372,7 +1372,6 @@ st.markdown("""
             font-weight: bold;
             font-size: 13px !important;    /* <-- added */
             padding: 4px 8px !important;    /* optional: tighten spacing */
-            text-align: left;
         }
         .stTextInput>div>div>input, .stNumberInput>div>div>input {
             border-radius: 5px;
