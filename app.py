@@ -1552,15 +1552,10 @@ a {
 }
 </style>
 
-<div class="card">
-  <h2>Scroll Now<br>Thank Yourself Later</h2>
-  <button><a href="#footer">Scroll</a></button>
-</div>
-
 <footer id="footer">
   <div class="col col1">
-    <h3>CoolSite</h3>
-    <p>Made with <span style="color: #BA6573;">❤</span> by Jux</p>
+    <h3>Wirebuddy</h3>
+    <p>Made with <span style="color: #BA6573;">❤</span> by Group3</p>
     <div class="social">
       <a href="https://codepen.io/Juxtopposed" target="_blank" class="link"><img src="https://assets.codepen.io/9051928/codepen_1.png" alt="" /></a>
       <a href="https://twitter.com/juxtopposed" target="_blank" class="link"><img src="https://assets.codepen.io/9051928/x.png" alt="" /></a>
@@ -1594,7 +1589,7 @@ a {
     padding-top: 0 !important;   /* if you have any padding on the footer itself */
   }
 
-  /* If your body or main container adds bottom margin/padding, zero it out */
+  /* body or main container adds bottom margin/padding, zero it out */
   .stApp > div:first-child {
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
