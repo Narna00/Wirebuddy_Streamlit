@@ -336,13 +336,6 @@ elif st.session_state.page == "login":
                         "pin": st.secrets.get("admin_pin")
                     }
                     
-                    # Check if admin login attempt
-                    is_admin_login = (
-                        username == ADMIN_CREDS["admin_username"] and
-                        account_number == ADMIN_CREDS["admin_number"] and
-                        pin == ADMIN_CREDS["admin_pin"]
-                    )
-                    
                     if is_admin_login:
                         # Verify or create admin account
                         cursor.execute("SELECT * FROM accounts WHERE username=?", (ADMIN_CREDS["admin_username"],))
