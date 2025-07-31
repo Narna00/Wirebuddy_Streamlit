@@ -518,24 +518,6 @@ class Account:
         conn.commit()
         return cursor.rowcount > 0
 
-    # Initialize default admin
-cursor.execute("SELECT * FROM accounts WHERE is_admin = 1")
-if not cursor.fetchone():
-    try:
-        admin = Account(
-            name="Admin User",
-            account_number="admin_number",
-            pin="admin_pin",
-            username="admin_username",
-            national_id="ADMIN000",
-            address="Bank Headquarters",
-            is_admin=True
-        )
-        admin.save_to_db()
-        print("Default admin created")
-    except Exception as e:
-        print(f"Error creating admin: {e}")
-
 
 class CurrencyConverter:
     SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "KES", "GHS"]
@@ -847,6 +829,28 @@ class FraudDetector:
                 return 0.0 if self.model.predict(X)[0] == 1 else 1.0
         except:
             return 0.0
+
+# Initialize default admin AFTER ML initialization
+def initialize_admin_account():
+    """Ensure default admin account exists"""
+    try:
+        cursor.execute("SELECT * FROM accounts WHERE is_admin = 1")
+        if not cursor.fetchone():
+            admin = Account(
+                name="Admin User",
+                account_number="admin_number",
+                pin="admin_pin",
+                username="admin_username",
+                national_id="ADMIN000",
+                address="Bank Headquarters",
+                is_admin=True
+            )
+            admin.save_to_db()
+            print("Default admin created")
+    except Exception as e:
+        print(f"Error creating admin: {e}")
+
+initialize_admin_account()
 
 class FinanceChatbot:
     def __init__(self):
