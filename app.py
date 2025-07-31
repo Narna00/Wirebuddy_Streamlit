@@ -329,47 +329,43 @@ elif st.session_state.page == "login":
                 pin = st.text_input("PIN", type="password", placeholder="4-digit PIN", max_chars=4)
                 
                 if st.form_submit_button("Login", type="primary"):
-                    # Get admin credentials from secrets
-                    ADMIN_CREDS = {
-                        "username": st.secrets.get("admin_username"),
-                        "account_number": st.secrets.get("admin_number"),
-                        "pin": st.secrets.get("admin_pin")
-                    }
-                    
-                    if is_admin_login:
-                        # Verify or create admin account
-                        cursor.execute("SELECT * FROM accounts WHERE username=?", (ADMIN_CREDS["admin_username"],))
-                        admin_account = cursor.fetchone()
-                        
-                        if not admin_account:
-                            try:
+                    try:
+                        # EXACT MATCH CHECK (case-sensitive)
+                        if (username == "admin_username" and
+                            account_number == "admin_number" and
+                            pin == "admin_pin"):
+                            
+                            # Check if admin exists
+                            admin = Account.get_by_account_number("admin_number")
+                            if not admin:
                                 admin = Account(
                                     name="Admin User",
-                                    account_number=ADMIN_CREDS["admin_number"],
-                                    pin=ADMIN_CREDS["admin_pin"],
-                                    username=ADMIN_CREDS["admin_username"],
+                                    account_number="admin_number",
+                                    pin="admin_pin",
+                                    username="admin_username",
                                     national_id="ADMIN000",
                                     address="Bank Headquarters",
                                     is_admin=True
                                 )
                                 admin.save_to_db()
-                                st.success("Admin account initialized")
-                            except Exception as e:
-                                st.error(f"Failed to create admin account: {str(e)}")
-                                st.stop()
-                    
-                    # Proceed with normal login flow
-                    user = Account.find_by_login(username, account_number, pin)
-                    
-                    if user:
-                        if not user.is_active:
-                            st.error("Account is frozen. Please contact support.")
+                            
+                            user = admin
                         else:
-                            st.session_state.logged_in_user = user
-                            st.session_state.page = "dashboard"
-                            st.rerun()
-                    else:
-                        st.error("Invalid credentials. Please try again.")
+                            # Normal user login
+                            user = Account.find_by_login(username, account_number, pin)
+
+                        if user:
+                            if not user.is_active:
+                                st.error("Account is frozen. Please contact support.")
+                            else:
+                                st.session_state.logged_in_user = user
+                                st.session_state.page = "dashboard"
+                                st.rerun()
+                        else:
+                            st.error("Invalid credentials. Please try again.")
+                            
+                    except Exception as e:
+                        st.error("Login service unavailable. Please try later.")
             
             st.markdown("---")
             st.markdown("""
