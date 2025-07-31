@@ -466,28 +466,28 @@ elif st.session_state.logged_in_user and st.session_state.page == "home":
             <button>Read More</button>
         </div>
         </li>
-        <li class='item' style="background-image: url('https://media.istockphoto.com/id/2198966747/photo/couple-closing-real-estate-contract-with-real-estate-agent.jpg?s=1024x1024&w=is&k=20&c=Xs0AKdbMB9nXlhkPY_O0_POt0Zf7cTCe5gv5bjJhm4w=')">
+        <li class='item' style="background-image: url('https://images.unsplash.com/photo-1616803140344-6682afb13cda?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OXx8YmFua2luZ3xlbnwwfDB8MHx8fDI%3D')">
         <div class='content'>
             <h2 class='title'>"Estrange Bond"</h2>
             <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
             <button>Read More</button>
         </div>
         </li>
-        <li class='item' style="background-image: url('https://images.pexels.com/photos/8292888/pexels-photo-8292888.jpeg')">
+        <li class='item' style="background-image: url('https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGJhbmtpbmd8ZW58MHwwfDB8fHwy')">
         <div class='content'>
             <h2 class='title'>"The Gate Keeper"</h2>
             <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
             <button>Read More</button>
         </div>
         </li>
-        <li class='item' style="background-image: url('https://cdn.pixabay.com/photo/2017/10/25/19/46/piggy-bank-2889046_1280.jpg')">
+        <li class='item' style="background-image: url('https://cdn.pixabay.com/photo/2017/08/30/07/56/clock-2696234_640.jpg')">
         <div class='content'>
             <h2 class='title'>"Last Trace Of Us"</h2>
             <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
             <button>Read More</button>
         </div>
         </li>
-        <li class='item' style="background-image: url('assets/8.png')">
+        <li class='item' style="background-image: url('https://www.pexels.com/photo/man-couple-love-woman-7768204/')">
         <div class='content'>
             <h2 class='title'>"Urban Decay"</h2>
             <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
