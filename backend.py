@@ -75,6 +75,11 @@ def create_tables():
         is_admin BOOLEAN DEFAULT 0
     )
     ''')
+    
+create_tables()
+conn.commit()
+
+
 
 # Create transactions table
 cursor.execute('''
