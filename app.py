@@ -1368,10 +1368,11 @@ st.markdown("""
         /* Make all Streamlit buttons a bit smaller */
         .stButton>button {
             width: 100%;
-            border-radius: 3px;
+            border-radius: 5px;
             font-weight: bold;
-            font-size: 9px !important;    /* <-- added */
-            padding: 4px 6px !important;    /* optional: tighten spacing */
+            font-size: 13px !important;    /* <-- added */
+            padding: 4px 8px !important;    /* optional: tighten spacing */
+            text-align: left;
         }
         .stTextInput>div>div>input, .stNumberInput>div>div>input {
             border-radius: 5px;
