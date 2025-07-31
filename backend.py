@@ -59,8 +59,8 @@ def execute_with_retry(query, params=()):
 # conn.commit()
 
 # Create accounts table
-def create_tables():
-    # Accounts table
+def initialize_database():
+    # Create all tables
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS accounts (
         account_number TEXT PRIMARY KEY,
@@ -76,7 +76,7 @@ def create_tables():
     )
     ''')
     
-create_tables()
+initialize_database()
 conn.commit()
 
 
@@ -189,8 +189,6 @@ CREATE TABLE IF NOT EXISTS savings_goals_history (
         FOREIGN KEY(goal_id) REFERENCES savings_goals(id)
     )
 ''')
-
-initialize_database()
 
 class Account:
     def __init__(self, name, account_number, pin, username, national_id, address,
