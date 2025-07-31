@@ -1,16 +1,178 @@
 # frontend.py
 import streamlit as st
-from backend import Account, CurrencyConverter, FinanceChatbot, ReceiptGenerator, verify_payment, initiate_deposit, initiate_withdrawal, verify_withdrawal
-from datetime import datetime
+from backend import fraud_detector, transaction_classifier, credit_scorer, savings_predictor, finance_chatbot, Account, CurrencyConverter, ReceiptGenerator, verify_payment, initiate_deposit, initiate_withdrawal, verify_withdrawal
 import time
+from datetime import datetime
 import pandas as pd
 import os
 from streamlit.components.v1 import html
 from io import StringIO
+import streamlit as st
+import streamlit.components.v1 as components
+
 
 # Configuration
-st.set_page_config(page_title="Wirebuddy", layout="centered", page_icon="🏦")
-st.title("Wirebuddy")
+st.set_page_config(page_title="SmartBank", layout="wide", page_icon="🏦")
+st.title("SmartBank App")
+
+
+
+# Custom CSS for professional banking UI
+st.markdown("""
+    <style>
+        /* Main Theme */
+        :root {
+            --primary: #005f73;
+            --primary-dark: #0a9396;
+            --secondary: #94d2bd;
+            --accent: #ee9b00;
+            --danger: #ae2012;
+            --light: #e9d8a6;
+            --dark: #001219;
+            --card-bg: #ffffff;
+            --app-bg: #f8f9fa;
+        }
+        
+        /* Stronger App Container */
+        .stApp {
+            background: var(--app-bg);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        /* Professional Headers */
+        h1 {
+            color: var(--primary) !important;
+            font-weight: 700 !important;
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 8px;
+        }
+        
+        h2 {
+            color: var(--primary-dark) !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Enhanced Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        /* Strong Buttons */
+        .stButton>button {
+            border-radius: 8px !important;
+            padding: 10px 24px !important;
+            font-weight: 600 !important;
+            transition: all 0.2s !important;
+            border: none !important;
+        }
+        
+        .stButton>button.primary {
+            background: var(--primary) !important;
+            color: white !important;
+        }
+        
+        .stButton>button.primary:hover {
+            background: var(--primary-dark) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Improved Sidebar */
+        .sidebar .sidebar-content {
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+        
+        .sidebar .stButton>button {
+            width: 100%;
+            margin: 8px 0;
+            text-align: left;
+            padding-left: 20px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar .stButton>button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        /* Transaction Items */
+        .transaction-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+        
+        .transaction-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Form Styling */
+        .stTextInput>div>div>input, 
+        .stNumberInput>div>div>input,
+        .stTextArea>div>div>textarea,
+        .stSelectbox>div>div>select {
+            border-radius: 18px !important;
+            padding: 10px 12px !important;
+            border: 2px solid #ddd !important;
+        }
+        
+        /* Metrics Cards */
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary);
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+def show_loading():
+    with st.spinner(""):
+        st.markdown("""
+            <div style='
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100px;
+            '>
+                <div class="loader"></div>
+            </div>
+            <style>
+                .loader {
+                    border: 5px solid #f3f3f3;
+                    border-top: 5px solid var(--primary);
+                    border-radius: 50%;
+                    width: 50px;
+                    height: 50px;
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        time.sleep(1)
+
 
 # Error handling for database connection
 import sqlite3
@@ -28,50 +190,86 @@ if 'logged_in_user' not in st.session_state:
     st.session_state.last_activity = datetime.now()
     st.session_state.receipt_data = None
 
+if 'force_page' not in st.session_state:
+    st.session_state.force_page = None
+
 # Helper functions
-def show_loading():
-    with st.spinner("Processing..."):
-        time.sleep(1)
+from datetime import datetime
+import pytz
 
-def validate_phone(phone):
-    return phone.isdigit() and len(phone) == 10
+def get_time_of_day():
+    hour = datetime.now().hour
+    if 5 <= hour < 12:
+        return "morning"
+    elif 12 <= hour < 17:
+        return "afternoon"
+    elif 17 <= hour < 21:
+        return "evening"
+    else:
+        return "night"
 
-def validate_pin(pin):
-    return pin.isdigit() and len(pin) == 4
+def get_transaction_icon(txn_type):
+    icons = {
+        "Deposit": "💰",
+        "Withdrawal": "🏧",
+        "Transfer": "↔️",
+        "Savings Contribution": "🎯",
+        "Payment": "💳"
+    }
+    return icons.get(txn_type, "📝")
 
 def format_currency(amount):
-    return f"${amount:,.2f}"
+    return f"₵{abs(amount):,.2f}" if amount >= 0 else f"-₵{abs(amount):,.2f}"
 
 # Sidebar navigation
-with st.sidebar:
-    st.title("Navigation")
-    if st.session_state.logged_in_user:
-        if st.button("Dashboard"):
-            st.session_state.page = "dashboard"
-        if st.button("Profile"):
-            st.session_state.page = "profile"
-        if st.button("Currency Converter"):
-            st.session_state.page = "currency_converter"
-        if st.button("Savings Goals"):
-            st.session_state.page = "savings_goals"
-        if st.button("Financial Advice"):
-            st.session_state.page = "financial_advice"
-        
-        if st.session_state.logged_in_user.is_admin:
-            if st.button("Admin Panel"):
-                st.session_state.page = "admin_panel"
-        
-        if st.button("Logout"):
-            st.session_state.logged_in_user = None
-            st.session_state.page = "login"
-            st.success("Logged out successfully.")
-            st.rerun()
-        orientation = "horizontal"
-    else:
-        if st.button("Register"):
+from streamlit_option_menu import option_menu
+
+# ─── NAVIGATION ──────────────────────────────────────────────────────────────
+# ─── NEW NAVIGATION SYSTEM ──────────────────────────────────────────────────────
+if st.session_state.logged_in_user:
+    # Define navigation items
+    nav_items = [
+        ("🏠", "Dashboard"),
+        ("👤", "Profile"),
+        ("💱", "Currency Converter"),
+        ("🎯", "Savings Goals"),
+        ("💡", "Financial Advice")
+    ]
+    
+    if st.session_state.logged_in_user.is_admin:
+        nav_items.append(("🔒", "Admin Panel"))
+    
+    nav_items.append(("🚪", "Logout"))
+    
+    # Create navigation columns
+    nav_cols = st.columns(len(nav_items))
+    
+    # Render navigation buttons
+    for i, (icon, label) in enumerate(nav_items):
+        with nav_cols[i]:
+            if st.button(f"{icon} {label}", key=f"nav_{label.lower().replace(' ', '_')}"):
+                if label == "Logout":
+                    st.session_state.logged_in_user = None
+                    st.session_state.page = "login"
+                    st.success("Logged out successfully.")
+                    st.rerun()
+                else:
+                    st.session_state.page = label.lower().replace(" ", "_")
+                    st.rerun()
+
+else:
+    # Login/Register navigation
+    auth_cols = st.columns(2)
+    with auth_cols[0]:
+        if st.button("Register", key="nav_register"):
             st.session_state.page = "register"
-        if st.button("Login"):
+            st.rerun()
+    with auth_cols[1]:
+        if st.button("Login", key="nav_login"):
             st.session_state.page = "login"
+            st.rerun()
+
+        
 
 # Registration Page
 if st.session_state.page == "register":
@@ -106,73 +304,375 @@ if st.session_state.page == "register":
                 except Exception as e:
                     st.error(f"Registration failed: {str(e)}")
 
+
 # Login Page
 elif st.session_state.page == "login":
-    st.header("Login")
-    with st.form("login_form"):
-        username = st.text_input("Username")
-        phone = st.text_input("Phone")
-        pin = st.text_input("PIN", type="password", max_chars=4)
-        
-        submitted = st.form_submit_button("Login")
-        if submitted:
-            show_loading()
-            user = Account.find_by_login(username, phone, pin)
-            if user:
-                if not user.is_active:
-                    st.error("Account is frozen. Please contact support.")
-                else:
-                    st.session_state.logged_in_user = user
-                    st.session_state.page = "dashboard"
-                    st.success(f"Welcome back, {user.name}!")
-                    st.rerun()
-            else:
-                st.error("Invalid credentials. Please try again.")
+    col1, col2 = st.columns([1,2])
+    with col1:
+        st.image("assets/wb.png", width=150)  # Add your logo
+        st.markdown("""
+            <h2 style='color: #2563eb;'>Welcome Back</h2>
+            <p style='color: #64748b;'>Securely access your accounts</p>
+        """, unsafe_allow_html=True)
+    with col2:
+        with st.container(border=True):
+            st.markdown("#### Sign In")
+            with st.form("login_form"):
+                username = st.text_input("Username", placeholder="Enter your username")
+                account_number = st.text_input("Account Number", placeholder="10-digit account number")
+                pin = st.text_input("PIN", type="password", placeholder="4-digit PIN", max_chars=4)
+                
+                if st.form_submit_button("Login", type="primary"):
+                    user = Account.find_by_login(username, account_number, pin)
+                    if user:
+                        if not user.is_active:
+                            st.error("Account is frozen. Please contact support.")
+                        else:
+                            st.session_state.logged_in_user = user
+                            st.session_state.page = "dashboard"
+                            st.rerun()
+                    else:
+                        st.error("Invalid credentials. Please try again.")
+            
+            st.markdown("---")
+            st.markdown("""
+                <div style='text-align: center;'>
+                    <p>Don't have an account? <a href='#' onclick='window.streamlit:componentBridge.setValue("register")'>Sign up</a></p>
+                    <p><a href='#'>Forgot PIN?</a></p>
+                </div>
+            """, unsafe_allow_html=True)
 
-# Dashboard (after login)
+
 elif st.session_state.logged_in_user and st.session_state.page == "dashboard":
     user = st.session_state.logged_in_user
-    st.header(f"Welcome, {user.name}!")
+
     
-    # Account summary
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Account Summary")
-        st.write(f"**Account Number:** {user.account_number}")
-        st.write(f"**Balance:** {format_currency(user.balance)}")
-        
-        # Quick balance summary
-        st.metric("Available Balance", format_currency(user.balance))
+    carousel_html = """
+    <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* Allow overflow so off-screen slides aren’t clipped */
+    body {
+        height: 100vh;
+        display: grid;
+        place-items: center;
+    }
+
+    main {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        overflow: visible;
+    }
+
+    .slider {
+        position: relative;
+        list-style: none;
+        height: 100%;
+    }
+
+
+    .item {
+        width: 200px;
+        height: 300px;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background-position: center;
+        background-size: cover;
+        border-radius: 20px;
+        box-shadow: 0 20px 30px rgba(255,255,255,0.3) inset;
+        transition: transform 0.1s, left 0.75s, top 0.75s, width 0.75s, height 0.75s;
+    }
+
+    /* Center slide styling */
+    .item:nth-child(1),
+    .item:nth-child(2) {
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        transform: none;
+        border-radius: 0;
+        box-shadow: none;
+        opacity: 1;
+    }
+
+    .item:nth-child(3) { left: 50%; }
+    .item:nth-child(4) { left: calc(50% + 220px); }
+    .item:nth-child(5) { left: calc(50% + 440px); }
+    .item:nth-child(6) { left: calc(50% + 660px); opacity: 0; }
+
+    .content {
+        width: min(30vw,400px);
+        position: absolute;
+        top: 50%;
+        left: 3rem;
+        transform: translateY(-50%);
+        font: 400 0.85rem helvetica,sans-serif;
+        color: white;
+        text-shadow: 0 3px 8px rgba(0,0,0,0.5);
+        opacity: 0;
+        display: none;
+    }
+
+    .content .title {
+        font-family: 'arial-black';
+        text-transform: uppercase;
+    }
+
+    .content .description {
+        line-height: 1.7;
+        margin: 1rem 0 1.5rem;
+        font-size: 0.8rem;
+    }
+
+    .content button {
+        width: fit-content;
+        background-color: rgba(0,0,0,0.1);
+        color: white;
+        border: 2px solid white;
+        border-radius: 0.25rem;
+        padding: 0.75rem;
+        cursor: pointer;
+    }
+
+    .item:nth-of-type(2) .content {
+        display: block;
+        animation: show 0.75s ease-in-out 0.3s forwards;
+    }
+
+    @keyframes show {
+        0% {
+        filter: blur(5px);
+        transform: translateY(calc(-50% + 75px));
+        }
+        100% {
+        opacity: 1;
+        filter: blur(0);
+        }
+    }
+
+    .nav {
+        position: absolute;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 5;
+        user-select: none;
+    }
+
+    .nav .btn {
+        background-color: rgba(255,255,255,0.5);
+        color: rgba(0,0,0,0.7);
+        border: 2px solid rgba(0,0,0,0.6);
+        margin: 0 0.25rem;
+        padding: 0.75rem;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    .nav .btn:hover {
+        background-color: rgba(255,255,255,0.3);
+    }
+    </style>
+
+
+    <main>
+    <ul class='slider'>
+        <li class='item' style="background-image: url('https://cdn.pixabay.com/photo/2019/06/20/17/59/online-banking-4287719_1280.jpg')">
+        <div class='content'>
+            <h2 class='title'>"Lossless Youths"</h2>
+            <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
+            <button>Read More</button>
+        </div>
+        </li>
+        <li class='item' style="background-image: url('https://media.istockphoto.com/id/2198966747/photo/couple-closing-real-estate-contract-with-real-estate-agent.jpg?s=1024x1024&w=is&k=20&c=Xs0AKdbMB9nXlhkPY_O0_POt0Zf7cTCe5gv5bjJhm4w=')">
+        <div class='content'>
+            <h2 class='title'>"Estrange Bond"</h2>
+            <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
+            <button>Read More</button>
+        </div>
+        </li>
+        <li class='item' style="background-image: url('https://images.pexels.com/photos/8292888/pexels-photo-8292888.jpeg')">
+        <div class='content'>
+            <h2 class='title'>"The Gate Keeper"</h2>
+            <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
+            <button>Read More</button>
+        </div>
+        </li>
+        <li class='item' style="background-image: url('https://cdn.pixabay.com/photo/2017/10/25/19/46/piggy-bank-2889046_1280.jpg')">
+        <div class='content'>
+            <h2 class='title'>"Last Trace Of Us"</h2>
+            <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
+            <button>Read More</button>
+        </div>
+        </li>
+        <li class='item' style="background-image: url('https://theawesomer.com/photos/2017/07/simon_stalenhag_the_electric_state_6.jpg')">
+        <div class='content'>
+            <h2 class='title'>"Urban Decay"</h2>
+            <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
+            <button>Read More</button>
+        </div>
+        </li>
+        <li class='item' style="background-image: url('https://da.se/app/uploads/2015/09/simon-december1994.jpg')">
+        <div class='content'>
+            <h2 class='title'>"The Migration"</h2>
+            <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
+            <button>Read More</button>
+        </div>
+        </li>
+    </ul>
+    <nav class='nav'>
+        <ion-icon class='btn prev' name="arrow-back-outline"></ion-icon>
+        <ion-icon class='btn next' name="arrow-forward-outline"></ion-icon>
+    </nav>
+    </main>
+
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script>
+    const slider = document.querySelector('.slider');
+    function activate(e) {
+        const items = document.querySelectorAll('.item');
+        if (e.target.matches('.next')) slider.append(items[0]);
+        if (e.target.matches('.prev')) slider.prepend(items[items.length-1]);
+    }
+    document.addEventListener('click', activate, false);
+    </script>
+    """
+
+    # Embed with enough height to show the full width
+    components.html(carousel_html, height=400, scrolling=True)
+
+    st.markdown(f"""
+        <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;'>
+            <div>
+                <h1 style='margin-bottom: 0;'>Good {get_time_of_day()}, {user.name.split()[0]}</h1>
+                <p style='color: #666; margin-top: 4px;'>
+                    Account: {user.account_number} | Last login: {datetime.now().strftime('%b %d, %Y %I:%M %p')}
+                </p>
+            </div>
+            <div style='background: var(--primary); color: white; padding: 12px 20px; border-radius: 10px; text-align: center;'>
+                <p style='margin: 0; font-size: 14px;'>Available Balance</p>
+                <h2 style='margin: 0; color: white;'>{format_currency(user.balance)}</h2>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
     
-    with col2:
-        st.subheader("Quick Actions")
-        if st.button("Deposit"):
+    st.markdown("---")
+    
+
+
+    
+    # Quick Actions with Icon Buttons
+    st.subheader("Quick Actions")
+    action_cols = st.columns(3)
+    with action_cols[0]:
+        if st.button("💳 Deposit", key="quick_deposit", use_container_width=True):
             st.session_state.page = "deposit"
             st.rerun()
-        if st.button("Withdraw"):
+    with action_cols[1]:
+        if st.button("🏧 Withdraw", key="quick_withdraw", use_container_width=True):
             st.session_state.page = "withdraw"
             st.rerun()
-        if st.button("Transfer"):
+    with action_cols[2]:
+        if st.button("↗️ Transfer", key="quick_transfer", use_container_width=True):
             st.session_state.page = "transfer"
             st.rerun()
+
     
-    # Recent transactions
+    # Account Overview Section
+    st.markdown("---")
+    st.subheader("Account Overview")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        with st.container():
+            st.markdown("#### 💸 Spending Analytics")
+            cursor.execute("""
+                SELECT strftime('%Y-%m', timestamp) as month, 
+                       SUM(amount) as total 
+                FROM transactions 
+                WHERE account_number=? AND amount < 0
+                GROUP BY strftime('%Y-%m', timestamp)
+                ORDER BY month DESC
+                LIMIT 6
+            """, (user.account_number,))
+            spending_data = cursor.fetchall()
+            
+            if spending_data:
+                df = pd.DataFrame(spending_data, columns=['Month', 'Amount'])
+                df['Amount'] = df['Amount'].abs()
+                df['Month'] = pd.to_datetime(df['Month'])
+                
+                # Use native Streamlit chart with style enhancements
+                st.area_chart(
+                    df.set_index('Month'), 
+                    color="#ae2012",
+                    use_container_width=True,
+                    height=200
+                )
+            else:
+                st.info("No spending data available")
+
+    with col2:
+        with st.container():
+            st.markdown("#### 💰 Income Analytics")
+            cursor.execute("""
+                SELECT strftime('%Y-%m', timestamp) as month, 
+                       SUM(amount) as total 
+                FROM transactions 
+                WHERE account_number=? AND amount > 0
+                GROUP BY strftime('%Y-%m', timestamp)
+                ORDER BY month DESC
+                LIMIT 6
+            """, (user.account_number,))
+            income_data = cursor.fetchall()
+            
+            if income_data:
+                df = pd.DataFrame(income_data, columns=['Month', 'Amount'])
+                df['Month'] = pd.to_datetime(df['Month'])
+                
+                st.area_chart(
+                    df.set_index('Month'), 
+                    color="#0a9396",
+                    use_container_width=True,
+                    height=200
+                )
+            else:
+                st.info("No income data available")
+    
+    # Recent Transactions with Enhanced UI
+    st.markdown("---")
     st.subheader("Recent Transactions")
+    
     history = user.get_transaction_history(5)
     if history:
-        for txn_type, amt, desc, ts, ref in history:
-            color = "green" if amt > 0 else "red"
-            icon = "⬆️" if amt > 0 else "⬇️"
+        for txn in history:
+            txn_type, amt, desc, ts, ref = txn
+            color = "#0a9396" if amt > 0 else "#ae2012"
+            icon = get_transaction_icon(txn_type)
+            
             st.markdown(f"""
-            <div style="padding:10px;border-radius:5px;margin:5px 0;background:#f0f2f6">
-                <b style="color:{color}">{icon} {txn_type}</b> | 
-                <b>{format_currency(abs(amt))}</b> | 
-                {desc} | 
-                <i>{ts}</i>
-            </div>
+                <div class='transaction-item'>
+                    <div style='font-size: 24px; margin-right: 16px;'>{icon}</div>
+                    <div style='flex: 1;'>
+                        <div style='font-weight: 600;'>{txn_type}</div>
+                        <div style='font-size: 14px; color: #666;'>{desc}</div>
+                        <div style='font-size: 12px; color: #999;'>{ts}</div>
+                    </div>
+                    <div style='
+                        font-weight: 700;
+                        color: {color};
+                        font-size: 18px;
+                    '>
+                        {format_currency(amt)}
+                    </div>
+                </div>
             """, unsafe_allow_html=True)
     else:
-        st.info("No transactions yet.")
+        st.info("No transactions yet")
 
 # Deposit Page
 # Updated Deposit Page with verification
@@ -206,7 +706,7 @@ elif st.session_state.logged_in_user and st.session_state.page == "deposit":
                     st.session_state.logged_in_user = user
                     # Once credited, clear the ref to prevent re-verification
                     del st.session_state['deposit_ref']
-                    st.success(f"Payment successful! New balance: ${user.balance:,.2f}")
+                    st.success(f"Payment successful! New balance: ₵{user.balance:,.2f}")
                 else:
                     st.warning(f"Payment status: {status}")
             except Exception as e:
@@ -218,7 +718,7 @@ elif st.session_state.logged_in_user and st.session_state.page == "withdraw":
     user = st.session_state.logged_in_user
     st.header("Withdraw Money to Mobile Money")
 
-    st.write(f"Available Balance: {user.balance:,.2f} GHS")
+    st.write(f"Available Balance: {user.balance:,.2f} ₵")
     momo = st.text_input("Mobile Money Number (10 digits)")
     amount = st.number_input("Amount to Withdraw", min_value=0.01, max_value=float(user.balance), step=0.01)
     pin = st.text_input("Enter 4‑digit PIN", type="password", max_chars=4, key="deposit_pin")
@@ -245,7 +745,7 @@ elif st.session_state.logged_in_user and st.session_state.page == "withdraw":
                     del st.session_state['withdraw_ref']
                     user = Account.get_by_account_number(user.account_number)
                     st.session_state.logged_in_user = user
-                    st.success(f"Withdrawal successful! New balance: {user.balance:,.2f} GHS")
+                    st.success(f"Withdrawal successful! New balance: {user.balance:,.2f} ₵")
                 else:
                     st.warning(f"Withdrawal status: {status}")
             except Exception as e:
@@ -278,11 +778,16 @@ elif st.session_state.logged_in_user and st.session_state.page == "transfer":
                 format="%.2f",
                 help=f"Maximum transferable: {format_currency(user.balance)}"
             )
+
+            pin = st.text_input("Enter 4‑digit PIN", type="password", max_chars=4, key="deposit_pin")
             
             submitted = st.form_submit_button("Send Money")
             
             if submitted:
-                if not recipient_acc.isdigit() or len(recipient_acc) != 10:
+                if not Account.find_by_login(user.username, user.account_number, pin):
+                    st.error("Invalid PIN. Deposit cancelled.")
+
+                elif not recipient_acc.isdigit() or len(recipient_acc) != 10:
                     st.error("Account number must be 10 digits")
                 elif amount <= 0:
                     st.error("Amount must be positive")
@@ -390,18 +895,42 @@ elif st.session_state.logged_in_user and st.session_state.page == "savings_goals
     st.header("Savings Goals")
     
     tab1, tab2 = st.tabs(["My Goals", "New Goal"])
-    
+
     with tab1:
         goals = user.get_savings_goals()
         if goals:
             for goal in goals:
                 goal_id, name, target, current, target_date, created_at = goal
                 progress = min(current / target * 100, 100)
+                remaining = max(0, target - current)
+                days_remaining = (datetime.strptime(target_date, "%Y-%m-%d") - datetime.now()).days
                 
                 with st.expander(f"{name} - {progress:.1f}% complete"):
                     st.write(f"**Target:** {format_currency(target)} by {target_date}")
                     st.write(f"**Saved:** {format_currency(current)}")
+                    st.write(f"**Remaining:** {format_currency(remaining)}")
                     st.progress(int(progress))
+                    
+                    # Add prediction
+                    prediction = savings_predictor.predict_achievement_date(goal_id, user.account_number)
+    
+                    if "Current daily average" in prediction:
+                        parts = prediction.split("\n")
+                        st.info(f"**{parts[0]}**")
+                        st.info(f"**{parts[1]}**")
+                        if "on track" in parts[2]:
+                            st.success(f"**Status:** {parts[2]}")
+                        else:
+                            st.warning(f"**Status:** {parts[2]}")
+                    else:
+                        st.info(f"**Prediction:** {prediction}")
+                    
+                    # Daily savings needed calculation
+                    if days_remaining > 0:
+                        daily_needed = remaining / days_remaining
+                        st.warning(f"**Daily savings needed:** {format_currency(daily_needed)}")
+                    else:
+                        st.error("Target date has passed!")
                     
                     col1, col2, col3 = st.columns(3)
                     with col1:
@@ -458,6 +987,7 @@ elif st.session_state.logged_in_user and st.session_state.page == "savings_goals
                                 st.rerun()
                             else:
                                 st.error("Failed to delete goal")
+
     
     with tab2:
         with st.form("new_goal_form"):
@@ -481,7 +1011,7 @@ elif st.session_state.logged_in_user and st.session_state.page == "savings_goals
 elif st.session_state.logged_in_user and st.session_state.page == "admin_panel" and st.session_state.logged_in_user.is_admin:
     st.header("Admin Panel")
     
-    tab1, tab2 = st.tabs(["Account Management", "System Overview"])
+    tab1, tab2, tab3 = st.tabs(["Accounts", "System", "Fraud"])
     
     with tab1:
         st.subheader("All Accounts")
@@ -557,6 +1087,231 @@ elif st.session_state.logged_in_user and st.session_state.page == "admin_panel" 
         else:
             st.warning("No accounts in system")
 
+    with tab3:  # Fraud Monitoring tab
+        st.header("📊 Comprehensive Fraud Detection")
+        
+        # 1. System-wide Fraud Dashboard
+        st.subheader("System-wide Fraud Analytics")
+        
+        # Get all flagged transactions with account info
+        cursor.execute("""
+            SELECT f.id, f.transaction_ref, a.name, a.account_number, 
+                   t.amount, t.type, t.timestamp, t.description,
+                   f.status, f.flagged_at, f.reviewed_by, f.reviewed_at
+            FROM flagged_transactions f
+            JOIN transactions t ON f.transaction_ref = t.reference_id
+            JOIN accounts a ON t.account_number = a.account_number
+            ORDER BY f.flagged_at DESC
+        """)
+        all_flagged = cursor.fetchall()
+        
+        # 2. Fraud Metrics Cards
+        col1, col2, col3, col4 = st.columns(4)
+        
+        # Total flagged transactions
+        total_flagged = len(all_flagged)
+        col1.metric("🚨 Flagged Transactions", total_flagged)
+        
+        # Pending review count
+        pending = sum(1 for txn in all_flagged if txn[8] == 'pending')
+        col2.metric("⏳ Pending Review", pending, 
+                   help="Transactions awaiting manual review")
+        
+        # Confirmed fraud
+        confirmed = sum(1 for txn in all_flagged if txn[8] == 'confirmed')
+        col3.metric("✅ Confirmed Fraud", confirmed, 
+                   delta=f"{confirmed/total_flagged*100:.1f}%" if total_flagged > 0 else 0)
+        
+        # False positives
+        false_pos = sum(1 for txn in all_flagged if txn[8] == 'approved')
+        col4.metric("❌ False Alarms", false_pos, 
+                   delta=f"{false_pos/total_flagged*100:.1f}%" if total_flagged > 0 else 0)
+        
+        # 3. Interactive Fraud Analysis
+        st.subheader("📈 Fraud Patterns Analysis")
+        
+        # Convert to DataFrame for analysis
+        if all_flagged:
+            fraud_df = pd.DataFrame(all_flagged, columns=[
+                "id", "reference", "name", "account", "amount", 
+                "type", "timestamp", "description", "status", 
+                "flagged_at", "reviewed_by", "reviewed_at"
+            ])
+            
+            # Time-based analysis
+            fraud_df['date'] = pd.to_datetime(fraud_df['timestamp']).dt.date
+            fraud_df['hour'] = pd.to_datetime(fraud_df['timestamp']).dt.hour
+            
+            tab1, tab2, tab3 = st.tabs(["By Time", "By Type", "By Account"])
+            
+            with tab1:
+                # Fraud by day
+                st.write("**Fraud Cases by Day**")
+                daily_fraud = fraud_df.groupby('date').size().reset_index(name='count')
+                st.line_chart(daily_fraud.set_index('date'))
+                
+                # Fraud by hour
+                st.write("**Fraud Cases by Hour of Day**")
+                hourly_fraud = fraud_df.groupby('hour').size().reset_index(name='count')
+                st.bar_chart(hourly_fraud.set_index('hour'))
+            
+            with tab2:
+                # Fraud by transaction type
+                st.write("**Fraud by Transaction Type**")
+                type_fraud = fraud_df.groupby('type').agg({
+                    'amount': ['count', 'mean', 'sum'],
+                    'status': lambda x: (x == 'confirmed').mean()
+                }).reset_index()
+                type_fraud.columns = ['Type', 'Count', 'Avg Amount', 'Total Amount', 'Confirmation Rate']
+                st.dataframe(type_fraud.sort_values('Count', ascending=False))
+                
+                # Amount distribution by type
+                st.write("**Amount Distribution by Type**")
+                st.bar_chart(fraud_df, x='type', y='amount')
+            
+            with tab3:
+                # High-risk accounts
+                st.write("**High-Risk Accounts**")
+                account_fraud = fraud_df.groupby(['account', 'name']).agg({
+                    'amount': ['count', 'sum'],
+                    'status': lambda x: (x == 'confirmed').mean()
+                }).reset_index()
+                account_fraud.columns = ['Account', 'Name', 'Count', 'Total Amount', 'Confirmation Rate']
+                st.dataframe(account_fraud.sort_values('Count', ascending=False))
+                
+                # Account age vs fraud
+                st.write("**Account Age vs Fraud Cases**")
+                cursor.execute("""
+                    SELECT a.account_number, 
+                           julianday('now') - julianday(a.created_at) as age_days,
+                           COUNT(f.id) as fraud_count
+                    FROM accounts a
+                    LEFT JOIN flagged_transactions f ON f.account_number = a.account_number
+                    GROUP BY a.account_number
+                """)
+                age_data = cursor.fetchall()
+                age_df = pd.DataFrame(age_data, columns=['account', 'age_days', 'fraud_count'])
+                st.scatter_chart(age_df, x='age_days', y='fraud_count')
+        
+        # 4. Detailed Transaction Review
+        st.subheader("🔍 Transaction Review Queue")
+        
+        if all_flagged:
+            # Filter options
+            col1, col2 = st.columns(2)
+            with col1:
+                show_status = st.selectbox(
+                    "Filter by Status",
+                    ["All", "Pending", "Confirmed", "Approved"]
+                )
+            with col2:
+                min_amount = st.number_input(
+                    "Minimum Amount", 
+                    min_value=0, 
+                    value=0
+                )
+            
+            # Apply filters
+            filtered = fraud_df
+            if show_status != "All":
+                filtered = filtered[filtered['status'] == show_status.lower()]
+            filtered = filtered[filtered['amount'] >= min_amount]
+            
+            # Display filtered transactions
+            for _, row in filtered.iterrows():
+                with st.expander(f"{row['type']} - {row['amount']:.2f} - {row['status']}"):
+                    col1, col2 = st.columns([3,1])
+                    with col1:
+                        st.write(f"**Account:** {row['name']} ({row['account']})")
+                        st.write(f"**Amount:** {row['amount']:.2f}")
+                        st.write(f"**Date:** {row['timestamp']}")
+                        st.write(f"**Description:** {row['description']}")
+                        st.write(f"**Flagged At:** {row['flagged_at']}")
+                        
+                        if pd.notna(row['reviewed_at']):
+                            st.write(f"**Reviewed By:** {row['reviewed_by']} at {row['reviewed_at']}")
+                    
+                    with col2:
+                        # Action buttons
+                        if row['status'] == 'pending':
+                            if st.button("✅ Confirm Fraud", key=f"confirm_{row['id']}"):
+                                cursor.execute("""
+                                    UPDATE flagged_transactions 
+                                    SET status='confirmed', 
+                                        reviewed_by=?,
+                                        reviewed_at=datetime('now')
+                                    WHERE id=?
+                                """, (st.session_state.logged_in_user.username, row['id']))
+                                conn.commit()
+                                st.success("Marked as confirmed fraud")
+                                st.rerun()
+                            
+                            if st.button("👍 Approve", key=f"approve_{row['id']}"):
+                                cursor.execute("""
+                                    UPDATE flagged_transactions 
+                                    SET status='approved', 
+                                        reviewed_by=?,
+                                        reviewed_at=datetime('now')
+                                    WHERE id=?
+                                """, (st.session_state.logged_in_user.username, row['id']))
+                                conn.commit()
+                                st.success("Transaction approved")
+                                st.rerun()
+                        
+                        if st.button("🗑️ Delete Flag", key=f"delete_{row['id']}"):
+                            cursor.execute("DELETE FROM flagged_transactions WHERE id=?", (row['id'],))
+                            conn.commit()
+                            st.warning("Flag removed")
+                            st.rerun()
+        else:
+            st.info("No flagged transactions in the system")
+        
+        # 5. Proactive Fraud Detection
+        st.subheader("🕵️ Proactive Detection")
+        
+        if st.button("Scan Recent Transactions for Fraud"):
+            with st.spinner("Scanning last 500 transactions..."):
+                # Get recent transactions
+                cursor.execute("""
+                    SELECT t.account_number, t.type, t.amount, t.timestamp, t.reference_id, a.name
+                    FROM transactions t
+                    JOIN accounts a ON t.account_number = a.account_number
+                    ORDER BY t.timestamp DESC
+                    LIMIT 500
+                """)
+                recent_txns = cursor.fetchall()
+                
+                # Check each transaction
+                new_flags = 0
+                for txn in recent_txns:
+                    txn_data = {
+                        'account_number': txn[0],
+                        'type': txn[1],
+                        'amount': txn[2],
+                        'timestamp': txn[3],
+                        'description': f"Proactive scan: {txn[1]}"
+                    }
+                    
+                    # Skip if already flagged
+                    cursor.execute("SELECT 1 FROM flagged_transactions WHERE transaction_ref=?", (txn[4],))
+                    if cursor.fetchone():
+                        continue
+                    
+                    if fraud_detector.is_fraudulent(txn_data):
+                        try:
+                            cursor.execute("""
+                                INSERT INTO flagged_transactions 
+                                (transaction_ref, account_number, flagged_at, status)
+                                VALUES (?, ?, datetime('now'), 'pending')
+                            """, (txn[4], txn[0]))
+                            new_flags += 1
+                        except:
+                            pass
+                
+                conn.commit()
+                st.success(f"Scan complete! Found {new_flags} new suspicious transactions")
+                st.rerun()
+ 
 # Currency Converter Page
 elif st.session_state.logged_in_user and st.session_state.page == "currency_converter":
     st.subheader("Currency Converter")
@@ -584,17 +1339,16 @@ elif st.session_state.logged_in_user and st.session_state.page == "currency_conv
     
     st.caption("ℹ Rates update every 24 hours. For investments, verify with your bank.")
 
-# Financial Advice Page
 elif st.session_state.logged_in_user and st.session_state.page == "financial_advice":
     st.subheader("Financial Literacy Bot")
     
     user_input = st.text_input("Ask me about saving, investing, or debt:")
     
     if user_input:
-        response = FinanceChatbot.get_response(user_input)
+        response = finance_chatbot.get_response(user_input)
         st.markdown(f"""
         <div style="background:#f0f2f6; padding:10px; border-radius:5px;">
-            <strong>Bot:</strong> {response}
+            <strong>AI Assistant:</strong> {response}
         </div>
         """, unsafe_allow_html=True)
     
@@ -603,6 +1357,8 @@ elif st.session_state.logged_in_user and st.session_state.page == "financial_adv
     st.markdown("- Best investment options?")
     st.markdown("- What is compound interest?")
     st.markdown("- How to get out of debt?")
+    st.markdown("- Explain inflation")
+    st.markdown("- How does credit score work?")
 
 # Session timeout check
 if st.session_state.logged_in_user and (datetime.now() - st.session_state.last_activity).seconds > 1800:
@@ -648,20 +1404,187 @@ def cleanup():
 import atexit
 atexit.register(cleanup)
 
-# Display version and footer
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Wirebuddy v1.2**")
-st.sidebar.markdown("© 2025 Wirebuddy Inc.")
 
-st.markdown("---")
-st.markdown(
-    """
-    <div style='text-align: center;'>
-        <a href='https://twitter.com/yourhandle' target='_blank'>🐦 Twitter</a> |
-        <a href='https://github.com/yourrepo' target='_blank'>💻 GitHub</a> |
-        <a href='mailto:youremail@example.com'>📧 Contact</a>
-        <p style='font-size: 0.8em;'>© 2025 Wirebuddy. All rights reserved.</p>
+
+st.markdown("""
+<style>
+@import url("https://fonts.googleapis.com/css?family=IBM%20Plex%20Sans:500|IBM%20Plex%20Sans:300");
+
+:root {
+  --m: 4rem;
+}
+* {
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+body {
+  background-color: black;
+  color: white;
+  font-family: "IBM Plex Sans";
+  font-weight: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 190vh;
+  margin: 0;
+  color: #d5d5d5;
+  font-size: calc(0.3 * var(--m));
+}
+h2 {
+  font-weight: 500;
+  text-align: center;
+  font-size: var(--m);
+  margin: 0;
+}
+h3 {
+  font-weight: 500;
+  font-size: calc(0.6 * var(--m));
+  margin: 0;
+}
+.card {
+  height: calc(8 * var(--m));
+  width: calc(12 * var(--m));
+  background: linear-gradient(120deg, #ff8064, #725bdc);
+  color: black;
+  border-radius: calc(0.5 * var(--m));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--m);
+  position: fixed;
+  margin: calc(2 * var(--m)) calc(5 * var(--m)) calc(5 * var(--m)) calc(5 * var(--m));
+  z-index: 100;
+}
+button {
+  background-color: #000;
+  font-size: calc(0.4 * var(--m));
+  border: none;
+  color: #e5e5e5;
+  font-family: "IBM Plex Sans";
+  font-weight: 400;
+  padding: calc(0.35 * var(--m)) calc(0.8 * var(--m));
+  border-radius: calc(0.3 * var(--m));
+}
+footer {
+  margin-top: 90vh;
+  z-index: 1;
+  width: 100%;
+  height: 50vh;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: flex-end;
+  padding: 5rem 2vw;
+  position: relative;
+}
+footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #000000;
+  z-index: -7;
+}
+.backdrop {
+  z-index: -5;
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  mask-image: linear-gradient(
+    rgba(0, 0, 0, 0),
+    rgba(0, 0, 0, 0.5) 10%,
+    rgba(0, 0, 0, 0.8) 20%,
+    rgba(0, 0, 0, 1) 30%,
+    rgb(0, 0, 0)
+  );
+  -webkit-mask-image: linear-gradient(
+    rgba(0, 0, 0, 0),
+    rgba(0, 0, 0, 0.5) 10%,
+    rgba(0, 0, 0, 0.8) 20%,
+    rgba(0, 0, 0, 1) 30%,
+    rgb(0, 0, 0)
+  );
+}
+.col {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: calc(0.3 * var(--m)) calc(0.8 * var(--m));
+  width: 28%;
+}
+.col2,
+.col3 {
+  background-color: #121212;
+  border-radius: calc(0.5 * var(--m));
+}
+img {
+  height: calc(0.3 * var(--m));
+  object-fit: cover;
+}
+.social {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 1rem;
+}
+a {
+  text-decoration: none;
+  color: inherit;
+}
+.link {
+  width: calc(0.8 * var(--m));
+  height: calc(0.8 * var(--m));
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: calc(0.1 * var(--m));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+@media screen and (max-width: 1000px) {
+  :root {
+    --m: 3rem;
+  }
+}
+@media screen and (max-width: 700px) {
+  footer {
+    flex-direction: column;
+    padding: 5rem 20vw;
+  }
+  .col {
+    width: 100%;
+  }
+}
+</style>
+
+<div class="card">
+  <h2>Scroll Now<br>Thank Yourself Later</h2>
+  <button><a href="#footer">Scroll</a></button>
+</div>
+
+<footer id="footer">
+  <div class="col col1">
+    <h3>CoolSite</h3>
+    <p>Made with <span style="color: #BA6573;">❤</span> by Jux</p>
+    <div class="social">
+      <a href="https://codepen.io/Juxtopposed" target="_blank" class="link"><img src="https://assets.codepen.io/9051928/codepen_1.png" alt="" /></a>
+      <a href="https://twitter.com/juxtopposed" target="_blank" class="link"><img src="https://assets.codepen.io/9051928/x.png" alt="" /></a>
+      <a href="https://youtube.com/@juxtopposed" target="_blank" class="link"><img src="https://assets.codepen.io/9051928/youtube_1.png" alt="" /></a>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+    <p style="color: #818181; font-size: smaller">2024 © All Rights Reserved</p>
+  </div>
+  <div class="col col2">
+    <p>About</p>
+    <p>Our mission</p>
+    <p>Privacy Policy</p>
+    <p>Terms of service</p>
+  </div>
+  <div class="col col3">
+    <p>Services</p>
+    <p>Products</p>
+    <p>Join our team</p>
+    <p>Partner with us</p>
+  </div>
+  <div class="backdrop"></div>
+</footer>
+""", unsafe_allow_html=True)
