@@ -21,8 +21,8 @@ def validate_pin(pin):
 
 
 # Configuration
-st.set_page_config(page_title="SmartBank", layout="wide", page_icon="🏦")
-st.title("SmartBank App")
+st.set_page_config(page_title="Wirebuddy", layout="wide", page_icon="🏦")
+st.title("Wirebuddy")
 
 
 
@@ -1566,7 +1566,7 @@ a {
       <a href="https://twitter.com/juxtopposed" target="_blank" class="link"><img src="https://assets.codepen.io/9051928/x.png" alt="" /></a>
       <a href="https://youtube.com/@juxtopposed" target="_blank" class="link"><img src="https://assets.codepen.io/9051928/youtube_1.png" alt="" /></a>
     </div>
-    <p style="color: #818181; font-size: smaller">2024 © All Rights Reserved</p>
+    <p style="color: #818181; font-size: smaller">2025 © All Rights Reserved</p>
   </div>
   <div class="col col2">
     <p>About</p>
