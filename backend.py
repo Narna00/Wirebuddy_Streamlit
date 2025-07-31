@@ -190,7 +190,7 @@ CREATE TABLE IF NOT EXISTS savings_goals_history (
     )
 ''')
 
-
+initialize_database()
 
 class Account:
     def __init__(self, name, account_number, pin, username, national_id, address,
