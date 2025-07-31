@@ -316,7 +316,7 @@ if st.session_state.page == "register":
 elif st.session_state.page == "login":
     col1, col2 = st.columns([1,2])
     with col1:
-        st.image("assets/wb.png", width=150)
+        st.image("assets/wb.png", width=150)  # Add your logo
         st.markdown("""
             <h2 style='color: #2563eb;'>Welcome Back</h2>
             <p style='color: #64748b;'>Securely access your accounts</p>
@@ -330,73 +330,16 @@ elif st.session_state.page == "login":
                 pin = st.text_input("PIN", type="password", placeholder="4-digit PIN", max_chars=4)
                 
                 if st.form_submit_button("Login", type="primary"):
-                    try:
-                        # Initialize login attempts counter if not exists
-                        if 'login_attempts' not in st.session_state:
-                            st.session_state.login_attempts = 0
-                        
-                        # Check if we should block login attempts
-                        if st.session_state.login_attempts >= 3:
-                            st.error("Too many failed attempts. Please try again later.")
-                            st.stop()
-                        
-                        # Check for admin login
-                        if (username == st.secrets["admin_credentials"]["username"] and
-                            account_number == st.secrets["admin_credentials"]["account_number"]):
-                            
-                            # Special handling for admin login attempts
-                            if 'admin_login_attempts' not in st.session_state:
-                                st.session_state.admin_login_attempts = 0
-                            
-                            if st.session_state.admin_login_attempts >= 3:
-                                st.error("Admin login locked. Too many failed attempts.")
-                                st.stop()
-                            
-                            if pin != st.secrets["admin_credentials"]["pin"]:
-                                st.session_state.login_attempts += 1
-                                st.session_state.admin_login_attempts += 1
-                                st.error(f"Invalid admin credentials. Attempts remaining: {3 - st.session_state.admin_login_attempts}")
-                                st.stop()
-                            
-                            # Successful admin login
-                            st.session_state.admin_login_attempts = 0
-                            
-                            # Check if admin exists
-                            admin = Account.get_by_account_number(st.secrets["admin_credentials"]["account_number"])
-                            if not admin:
-                                admin = Account(
-                                    name="Admin User",
-                                    account_number=st.secrets["admin_credentials"]["account_number"],
-                                    pin=st.secrets["admin_credentials"]["pin"],
-                                    username=st.secrets["admin_credentials"]["username"],
-                                    national_id="ADMIN000",
-                                    address="Bank Headquarters",
-                                    is_admin=True
-                                )
-                                admin.save_to_db()
-                            
-                            user = admin
+                    user = Account.find_by_login(username, account_number, pin)
+                    if user:
+                        if not user.is_active:
+                            st.error("Account is frozen. Please contact support.")
                         else:
-                            # Normal user login
-                            user = Account.find_by_login(username, account_number, pin)
-                            if not user:
-                                st.session_state.login_attempts += 1
-
-                        if user:
-                            if not user.is_active:
-                                st.error("Account is frozen. Please contact support.")
-                            else:
-                                # Reset attempts on successful login
-                                st.session_state.login_attempts = 0
-                                st.session_state.logged_in_user = user
-                                st.session_state.page = "dashboard"
-                                st.rerun()
-                        else:
-                            remaining_attempts = 3 - st.session_state.login_attempts
-                            st.error(f"Invalid credentials. Attempts remaining: {remaining_attempts}")
-                            
-                    except Exception as e:
-                        st.error(f"Login service unavailable: {str(e)}")
+                            st.session_state.logged_in_user = user
+                            st.session_state.page = "dashboard"
+                            st.rerun()
+                    else:
+                        st.error("Invalid credentials. Please try again.")
             
             st.markdown("---")
             st.markdown("""
