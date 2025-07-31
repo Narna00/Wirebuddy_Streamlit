@@ -329,7 +329,54 @@ elif st.session_state.page == "login":
                 pin = st.text_input("PIN", type="password", placeholder="4-digit PIN", max_chars=4)
                 
                 if st.form_submit_button("Login", type="primary"):
-                    user = Account.find_by_login(username, account_number, pin)
+                    # Debug output (visible only in development)
+                    debug = False  # Set to False in production
+                    if debug:
+                        st.write("Attempting login with:", {
+                            "username": username,
+                            "account_number": account_number,
+                            "pin": pin
+                        })
+                    
+                    # Check for admin credentials first
+                    admin_credentials = {
+                        "username": "admin",
+                        "account_number": "0000000000",
+                        "pin": "0000"
+                    }
+                    
+                    if (username == admin_credentials["username"] and 
+                        account_number == admin_credentials["account_number"] and 
+                        pin == admin_credentials["pin"]):
+                        # Create admin account if doesn't exist
+                        cursor.execute("SELECT * FROM accounts WHERE username='admin'")
+                        admin_account = cursor.fetchone()
+                        
+                        if not admin_account:
+                            admin = Account(
+                                name="Admin User",
+                                account_number="0000000000",
+                                pin="0000",
+                                username="admin",
+                                national_id="ADMIN000",
+                                address="Bank Headquarters",
+                                is_admin=True
+                            )
+                            admin.save_to_db()
+                            st.success("Admin account created automatically")
+                        
+                        user = Account.find_by_login(username, account_number, pin)
+                    else:
+                        user = Account.find_by_login(username, account_number, pin)
+                    
+                    if debug:
+                        st.write("User found:", user)
+                        if user:
+                            st.write("User details:", {
+                                "is_admin": user.is_admin,
+                                "is_active": user.is_active
+                            })
+                    
                     if user:
                         if not user.is_active:
                             st.error("Account is frozen. Please contact support.")
@@ -339,6 +386,8 @@ elif st.session_state.page == "login":
                             st.rerun()
                     else:
                         st.error("Invalid credentials. Please try again.")
+                        if debug:
+                            st.write("All accounts in system:", Account.get_all_accounts())
             
             st.markdown("---")
             st.markdown("""
