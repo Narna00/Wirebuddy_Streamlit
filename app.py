@@ -1080,7 +1080,7 @@ elif st.session_state.logged_in_user and st.session_state.page == "admin_panel" 
             st.warning("No accounts in system")
 
     with tab3:  # Fraud Monitoring tab
-        st.header("📊 Comprehensive Fraud Detection")
+        st.header("Comprehensive Fraud Detection")
         
         # 1. System-wide Fraud Dashboard
         st.subheader("System-wide Fraud Analytics")
