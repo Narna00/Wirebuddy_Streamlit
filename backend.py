@@ -1,57 +1,121 @@
 import sqlite3
-from datetime import datetime
+import time
+from sqlite3 import OperationalError
+from datetime import datetime, timedelta
+import sys
 import requests
 from forex_python.converter import CurrencyRates
 import uuid
-import streamlit as st
+import random
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import IsolationForest, RandomForestClassifier
+from sklearn.linear_model import LinearRegression
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics.pairwise import cosine_similarity
+import joblib
+import threading
+import time
+
 
 # Database connection and cursor
 conn = sqlite3.connect("bank.db", check_same_thread=False)
 cursor = conn.cursor()
 
-# Create accounts table
+
+
+MAX_RETRIES = 5
+RETRY_DELAY = 0.2  # seconds
+
+def execute_with_retry(query, params=()):
+    """Execute SQL query with retry on lock"""
+    for attempt in range(MAX_RETRIES):
+        try:
+            cursor.execute(query, params)
+            conn.commit()
+            return
+        except OperationalError as e:
+            if "database is locked" in str(e) and attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY)
+            else:
+                raise
+
+
+
+
+# Create otps table
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS accounts (
-    account_number TEXT PRIMARY KEY,
-    name TEXT,
-    pin TEXT,
-    username TEXT UNIQUE,
-    national_id TEXT,
-    address TEXT,
-    balance REAL DEFAULT 0.0,
-    created_at TEXT,
-    is_active BOOLEAN DEFAULT 1,
-    is_admin BOOLEAN DEFAULT 0
+CREATE TABLE IF NOT EXISTS otps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone TEXT NOT NULL,
+    otp TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    expires_at TEXT NOT NULL
 )
 ''')
+conn.commit()
+
+# Create accounts table
+def create_tables():
+    # Accounts table
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS accounts (
+        account_number TEXT PRIMARY KEY,
+        name TEXT,
+        pin TEXT,
+        username TEXT UNIQUE,
+        national_id TEXT,
+        address TEXT,
+        balance REAL DEFAULT 0.0,
+        created_at TEXT,
+        is_active BOOLEAN DEFAULT 1,
+        is_admin BOOLEAN DEFAULT 0
+    )
+    ''')
 
 # Create transactions table
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS transactions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    account_number TEXT,
-    type TEXT,
-    amount REAL,
-    description TEXT,
-    timestamp TEXT,
-    reference_id TEXT,
-    FOREIGN KEY(account_number) REFERENCES accounts(account_number)
-)
-''')
+    CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_number TEXT,
+        type TEXT,
+        amount REAL,
+        description TEXT,
+        timestamp TEXT,
+        reference_id TEXT,
+        FOREIGN KEY(account_number) REFERENCES accounts(account_number)
+    )
+    ''')
 
 # Create savings_goals table
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS savings_goals (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    account_number TEXT,
-    goal_name TEXT,
-    target_amount REAL,
-    current_amount REAL DEFAULT 0.0,
-    target_date TEXT,
-    created_at TEXT,
-    FOREIGN KEY(account_number) REFERENCES accounts(account_number)
-)
-''')
+    CREATE TABLE IF NOT EXISTS savings_goals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_number TEXT,
+        goal_name TEXT,
+        target_amount REAL,
+        current_amount REAL DEFAULT 0.0,
+        target_date TEXT,
+        created_at TEXT,
+        FOREIGN KEY(account_number) REFERENCES accounts(account_number)
+    )
+    ''')
+
+    # Savings goals history table - NEW VERSION
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS savings_goals_history_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        goal_id INTEGER,
+        contribution_amount REAL,
+        current_amount REAL,
+        timestamp TEXT,
+        FOREIGN KEY(goal_id) REFERENCES savings_goals(id)
+    )
+    ''')
+
+
 
 # Create payments table for real deposits
 cursor.execute('''
@@ -86,6 +150,42 @@ CREATE TABLE IF NOT EXISTS disbursements (
 ''')
 conn.commit()
 
+# Create new tables for ML features
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS flagged_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_ref TEXT NOT NULL,
+    account_number TEXT NOT NULL,
+    flagged_at TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    reviewed_by TEXT,
+    reviewed_at TEXT
+)
+''')
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS transaction_categories (
+    transaction_id INTEGER PRIMARY KEY,
+    category TEXT,
+    FOREIGN KEY(transaction_id) REFERENCES transactions(id)
+)
+''')
+conn.commit()
+
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS savings_goals_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        goal_id INTEGER,
+        contribution_amount REAL,
+        current_amount REAL,
+        timestamp TEXT,
+        FOREIGN KEY(goal_id) REFERENCES savings_goals(id)
+    )
+''')
+
+
+
 class Account:
     def __init__(self, name, account_number, pin, username, national_id, address,
                  balance=0.0, created_at=None, is_active=True, is_admin=False):
@@ -101,11 +201,12 @@ class Account:
         self.is_admin = is_admin
 
     def save_to_db(self):
-        cursor.execute(
+        execute_with_retry(
             "INSERT INTO accounts (account_number, name, pin, username, national_id, address, balance, created_at, is_active, is_admin) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (self.account_number, self.name, self.pin, self.username, self.national_id, self.address, self.balance, self.created_at, self.is_active, self.is_admin)
+            (self.account_number, self.name, self.pin, self.username, 
+             self.national_id, self.address, self.balance, 
+             self.created_at, self.is_active, self.is_admin)
         )
-        conn.commit()
 
     @staticmethod
     def find_by_login(username, account_number, pin):
@@ -137,11 +238,13 @@ class Account:
 
     def deposit(self, amount):
         self.balance += amount
-        cursor.execute("UPDATE accounts SET balance=? WHERE account_number=?", (self.balance, self.account_number))
+        execute_with_retry("UPDATE accounts SET balance=? WHERE account_number=?", 
+                         (self.balance, self.account_number))
         ref = str(uuid.uuid4())[:8]
         self._record_transaction("Deposit", amount, "Deposit made", ref)
         conn.commit()
         return ref
+    
 
     @staticmethod
     def get_all_accounts():
@@ -207,13 +310,62 @@ class Account:
             return None, str(e)
 
     def _record_transaction(self, txn_type, amount, description, reference_id):
+        # Get current timestamp
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # First insert the transaction record
         cursor.execute("""
             INSERT INTO transactions 
             (account_number, type, amount, description, timestamp, reference_id)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (self.account_number, txn_type, amount, description, timestamp, reference_id))
+        
+        # Get the auto-incremented transaction ID
+        transaction_id = cursor.lastrowid
+        
+        # Prepare transaction data for fraud detection
+        transaction_data = {
+            'account_number': self.account_number,
+            'type': txn_type,
+            'amount': amount,
+            'timestamp': timestamp,
+            'description': description
+        }
+        
+        # Fraud check only for withdrawals/transfers
+        is_fraud = False
+        if txn_type in ["Withdrawal", "Transfer Out"]:
+            is_fraud = fraud_detector.is_fraudulent(transaction_data)
+            
+            # Log the detection result
+            print(f"Transaction {reference_id}: Amount {amount}, Type {txn_type} - {'FRAUD DETECTED' if is_fraud else 'Legitimate'}")
+            
+            if is_fraud:
+                self._flag_transaction(reference_id)
+        
+        # Transaction categorization
+        try:
+            category = transaction_classifier.categorize(description)
+            cursor.execute("""
+                INSERT OR REPLACE INTO transaction_categories 
+                (transaction_id, category) VALUES (?, ?)
+            """, (transaction_id, category))
+        except Exception as e:
+            print(f"Failed to categorize transaction: {e}")
+        
         conn.commit()
+
+    def _flag_transaction(self, reference_id):
+        try:
+            cursor.execute("""
+                INSERT INTO flagged_transactions 
+                (transaction_ref, account_number, flagged_at, status)
+                VALUES (?, ?, ?, ?)
+            """, (reference_id, self.account_number, 
+                  datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'pending'))
+            conn.commit()
+        except:
+            pass
 
     def get_transaction_history(self, limit=None):
         query = """
@@ -289,15 +441,21 @@ class Account:
             # Get current goal amount
             cursor.execute("SELECT current_amount FROM savings_goals WHERE id=?", (goal_id,))
             current = cursor.fetchone()[0]
+            new_goal_amount = current + amount
             
             # Update balances
             self.balance -= amount
-            new_goal_amount = current + amount
-            
             cursor.execute("UPDATE accounts SET balance=? WHERE account_number=?", 
                          (self.balance, self.account_number))
             cursor.execute("UPDATE savings_goals SET current_amount=? WHERE id=?", 
                          (new_goal_amount, goal_id))
+            
+            # Record contribution history - FIXED
+            cursor.execute("""
+                INSERT INTO savings_goals_history 
+                (goal_id, contribution_amount, current_amount, timestamp)
+                VALUES (?, ?, ?, ?)
+            """, (goal_id, amount, new_goal_amount, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
             
             # Record transaction
             reference_id = str(uuid.uuid4())[:8]
@@ -373,23 +531,9 @@ if not cursor.fetchone():
         is_admin=True
     )
     admin.save_to_db()
-
-class FinanceChatbot:
-    @staticmethod
-    def get_response(query):
-        responses = {
-            "how to save money": "Start by budgeting, cutting unnecessary expenses, and automating savings.",
-            "best investment options": "Consider stocks, bonds, mutual funds, or real estate based on your risk tolerance.",
-            "what is compound interest": "It's interest on both the initial principal and accumulated interest over time.",
-            "how to get out of debt": "Try the snowball or avalanche method, and avoid new debt.",
-            "default": "I can help with budgeting, saving, investing, and debt management. Ask me anything!"
-        }
-        
-        query = query.lower()
-        for key in responses:
-            if key in query:
-                return responses[key]
-        return responses["default"]
+    print("Default admin created")
+except Exception as e:
+    print(f"Error creating admin: {e}")
 
 
 class CurrencyConverter:
@@ -423,7 +567,6 @@ class CurrencyConverter:
             raise ValueError("Unsupported currency")
         usd_value = amount / rates[from_currency]
         return usd_value * rates[to_currency]
-
 
 
 def format_currency(amount, currency="GHS"):
@@ -531,15 +674,13 @@ def verify_payment(reference):
 
     # If successful and was not already credited, credit user's balance
     if status == 'success' and old_status != 'success':
-        from backend import Account
         acct = Account.get_by_account_number(account_no)
         if acct:
             acct.deposit(amount)
     return status
 
 # ---------- Mobile Money Withdrawal ----------
-# Add at the top
-PAYSTACK_SECRET_KEY = st.secrets["api_key"]  # Replace with your actual key
+PAYSTACK_SECRET_KEY = "sk_test_db3ef49c1f56e6a6891a8d6ed871f16e31485f3c"  # Replace with your actual key
 headers = {
     "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
     "Content-Type": "application/json"
@@ -618,3 +759,457 @@ def verify_withdrawal(reference):
     )
     conn.commit()
     return status
+
+
+
+class FraudDetector:
+    def __init__(self, model_path="fraud_model.pkl", vectorizer_path="fraud_vectorizer.pkl"):
+        try:
+            # Load pre-trained model and vectorizer
+            self.model = joblib.load(model_path)
+            self.vectorizer = joblib.load(vectorizer_path)
+            self.is_trained = True
+            self.feature_names = self.vectorizer.get_feature_names_out()
+            print("Loaded pre-trained fraud detection model")
+        except Exception as e:
+            print(f"Error loading pre-trained model: {e}")
+            self.model = IsolationForest(contamination=0.01, random_state=42)
+            self.vectorizer = None
+            self.is_trained = False
+            print("Using new fraud detection model")
+    
+    def extract_features(self, transaction):
+        """Convert transaction data into features for the model"""
+        features = {
+            'amount': transaction['amount'],
+            'type': transaction['type'],
+            'hour_of_day': datetime.strptime(transaction['timestamp'], '%Y-%m-%d %H:%M:%S').hour,
+            'day_of_week': datetime.strptime(transaction['timestamp'], '%Y-%m-%d %H:%M:%S').weekday(),
+            'account_age_days': self.calculate_account_age(transaction['account_number']),
+            'is_weekend': int(datetime.strptime(transaction['timestamp'], '%Y-%m-%d %H:%M:%S').weekday() >= 5),
+            'transaction_size_category': self.get_amount_category(transaction['amount'])
+        }
+        return features
+    
+    def get_amount_category(self, amount):
+        if amount < 100: return 'small'
+        elif amount < 1000: return 'medium'
+        else: return 'large'
+    
+    def calculate_account_age(self, account_number):
+        """Calculate account age in days"""
+        cursor.execute("SELECT created_at FROM accounts WHERE account_number=?", (account_number,))
+        created_at = cursor.fetchone()[0]
+        created_date = datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S')
+        return (datetime.now() - created_date).days
+    
+    def is_fraudulent(self, transaction):
+        """Check if transaction is suspicious using pre-trained model"""
+        if not self.is_trained:
+            return False
+            
+        try:
+            # Extract features
+            features = self.extract_features(transaction)
+            
+            # Create feature vector in same format as training
+            feature_df = pd.DataFrame([features])
+            
+            # Vectorize categorical features
+            X = self.vectorizer.transform(feature_df)
+            
+            # Predict
+            prediction = self.model.predict(X)
+            return prediction[0] == -1  # -1 means fraud in IsolationForest
+            
+        except Exception as e:
+            print(f"Fraud detection error: {e}")
+            return False
+    
+    def get_fraud_probability(self, transaction):
+        """Get fraud probability score if model supports it"""
+        if not self.is_trained:
+            return 0.0
+            
+        try:
+            features = self.extract_features(transaction)
+            feature_df = pd.DataFrame([features])
+            X = self.vectorizer.transform(feature_df)
+            
+            if hasattr(self.model, 'decision_function'):
+                score = self.model.decision_function(X)[0]
+                # Convert to probability-like score (0-1)
+                return 1 / (1 + np.exp(-score))
+            elif hasattr(self.model, 'predict_proba'):
+                return self.model.predict_proba(X)[0][1]
+            else:
+                return 0.0 if self.model.predict(X)[0] == 1 else 1.0
+        except:
+            return 0.0
+
+class FinanceChatbot:
+    def __init__(self):
+        self.questions = [
+            "how to save money",
+            "best investment options",
+            "what is compound interest",
+            "how to get out of debt",
+            "what is inflation",
+            "how does credit score work"
+        ]
+        self.answers = [
+            "Start by budgeting, cutting unnecessary expenses, and automating savings.",
+            "Consider stocks, bonds, mutual funds, or real estate based on your risk tolerance.",
+            "It's interest on both the initial principal and accumulated interest over time.",
+            "Try the snowball or avalanche method, and avoid new debt.",
+            "Inflation is the rate at which prices for goods and services increase over time.",
+            "Credit scores range from 300-850 and are based on payment history, credit utilization, etc."
+        ]
+        self.vectorizer = TfidfVectorizer().fit(self.questions)
+        
+    def get_response(self, query):
+        # Vectorize input
+        query_vec = self.vectorizer.transform([query.lower()])
+        question_vecs = self.vectorizer.transform(self.questions)
+        
+        # Calculate similarity
+        similarities = cosine_similarity(query_vec, question_vecs)
+        max_index = np.argmax(similarities)
+        
+        if similarities[0, max_index] > 0.3:
+            return self.answers[max_index]
+        else:
+            return "I can help with budgeting, saving, investing, and debt management. Ask me anything!"
+
+class SavingsPredictor:
+    def predict_achievement_date(self, goal_id, account_number):
+        try:
+            # Use a new connection
+            pred_conn = sqlite3.connect("bank.db")
+            pred_cursor = pred_conn.cursor()
+            
+            # Get goal details
+            pred_cursor.execute("""
+                SELECT target_amount, current_amount, target_date, created_at 
+                FROM savings_goals 
+                WHERE id=? AND account_number=?
+            """, (goal_id, account_number))
+            goal = pred_cursor.fetchone()
+            
+            if not goal:
+                return "Goal not found"
+                
+            target_amount, current_amount, target_date, created_at = goal
+            
+            # Get contributions - FIXED QUERY
+            pred_cursor.execute("""
+                SELECT timestamp, current_amount 
+                FROM savings_goals_history 
+                WHERE goal_id=?
+                ORDER BY timestamp
+            """, (goal_id,))
+            contributions = pred_cursor.fetchall()
+            
+            # Calculate basic metrics
+            remaining = target_amount - current_amount
+            created_date = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
+            target_date = datetime.strptime(target_date, "%Y-%m-%d")
+            days_so_far = (datetime.now() - created_date).days
+            days_remaining = (target_date - datetime.now()).days
+            
+            # Case 1: No contributions yet
+            if current_amount == 0:
+                daily_needed = target_amount / days_remaining if days_remaining > 0 else target_amount
+                return f"Start saving! You need to save {format_currency(daily_needed)} daily to reach your goal"
+            
+            # Case 2: Only one contribution
+            if len(contributions) < 2:
+                avg_daily = current_amount / days_so_far if days_so_far > 0 else current_amount
+                daily_needed = remaining / days_remaining if days_remaining > 0 else remaining
+                
+                status = "on track" if avg_daily >= daily_needed else "behind"
+                return (
+                    f"Current daily average: {format_currency(avg_daily)}\n"
+                    f"Daily needed: {format_currency(daily_needed)}\n"
+                    f"You're {status}"
+                )
+            
+            # Case 3: Enough data for full prediction
+            # Calculate daily savings rate
+            dates = [datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S') for row in contributions]
+            amounts = [row[1] for row in contributions]
+            
+            date_diffs = [(dates[i] - dates[0]).days for i in range(1, len(dates))]
+            amount_diffs = [amounts[i] - amounts[0] for i in range(1, len(amounts))]
+            daily_rate = sum(ad/dd for ad, dd in zip(amount_diffs, date_diffs)) / len(date_diffs)
+            
+            # Calculate days needed
+            remaining = target_amount - amounts[-1]
+            days_needed = max(1, round(remaining / daily_rate)) if daily_rate > 0 else 999
+            
+            # Calculate predicted date
+            predicted_date = datetime.now() + timedelta(days=days_needed)
+            
+            # Compare with target date
+            target_date = datetime.strptime(target_date, "%Y-%m-%d")
+            status = "ahead of schedule" if predicted_date < target_date else "behind schedule"
+            
+            return f"Predicted {predicted_date.strftime('%b %d, %Y')} ({status})"
+            
+        except Exception as e:
+            return f"Prediction unavailable: {str(e)}"
+        finally:
+            pred_cursor.close()
+            pred_conn.close()
+
+class TransactionClassifier:
+    def __init__(self):
+        self.categories = ['Food', 'Transport', 'Entertainment', 'Utilities', 'Shopping']
+        self.model = None
+        self.vectorizer = None
+        self._initialize_model()
+    
+    def _initialize_model(self):
+        try:
+            self.vectorizer = joblib.load('vectorizer.pkl')
+            self.model = joblib.load('classifier.pkl')
+            print("Loaded pre-trained classifier")
+        except:
+            print("Training new classifier...")
+            self.train_model()
+    
+    def train_model(self):
+        # Expanded training data
+        descriptions = [
+            "supermarket", "grocery", "restaurant", "coffee shop", "food delivery",
+            "gas station", "bus fare", "taxi", "uber", "lyft", "train ticket",
+            "netflix", "spotify", "cinema", "concert", "amazon prime",
+            "electricity", "water bill", "internet", "phone bill", "rent",
+            "clothing", "electronics", "shopping mall", "online purchase", "other"
+        ]
+        labels = [0,0,0,0,0, 1,1,1,1,1,1, 2,2,2,2,2, 3,3,3,3,3, 4,4,4,4,4]
+        
+        # Vectorize text
+        self.vectorizer = CountVectorizer()
+        X = self.vectorizer.fit_transform(descriptions)
+        
+        # Train classifier
+        self.model = MultinomialNB()
+        self.model.fit(X, labels)
+        
+        # Save models
+        joblib.dump(self.vectorizer, 'vectorizer.pkl')
+        joblib.dump(self.model, 'classifier.pkl')
+        print("Classifier trained and saved")
+    
+    def categorize(self, description):
+        if not self.model:
+            return "Uncategorized"
+        
+        try:
+            # Preprocess description
+            clean_desc = description.lower()[:50]  # Truncate long descriptions
+            X = self.vectorizer.transform([clean_desc])
+            prediction = self.model.predict(X)
+            return self.categories[prediction[0]]
+        except Exception as e:
+            print(f"Categorization error: {e}")
+            return "Uncategorized"
+
+class CreditScorer:
+    def __init__(self):
+        try:
+            self.model = joblib.load('credit_model.pkl')
+        except:
+            self.model = None
+    
+    def train_model(self):
+        # This would be trained on historical data
+        # Placeholder implementation
+        np.random.seed(42)
+        data = {
+            'balance': np.random.normal(5000, 2000, 1000),
+            'transaction_count': np.random.poisson(30, 1000),
+            'avg_transaction': np.random.normal(150, 50, 1000),
+            'max_balance': np.random.normal(7000, 2500, 1000),
+            'creditworthy': np.random.randint(0, 2, 1000)
+        }
+        df = pd.DataFrame(data)
+        
+        self.model = RandomForestClassifier()
+        self.model.fit(df.drop('creditworthy', axis=1), df['creditworthy'])
+        joblib.dump(self.model, 'credit_model.pkl')
+    
+    def predict_creditworthiness(self, account_number):
+        if not self.model:
+            self.train_model()
+        
+        # Get account features
+        cursor.execute("""
+            SELECT balance, 
+                   (SELECT COUNT(*) FROM transactions 
+                    WHERE account_number = ?) as transaction_count,
+                   (SELECT AVG(amount) FROM transactions 
+                    WHERE account_number = ?) as avg_transaction,
+                   MAX(balance) as max_balance
+            FROM accounts
+            WHERE account_number = ?
+        """, (account_number, account_number, account_number))
+        features = cursor.fetchone()
+        
+        if not features or None in features:
+            return "Insufficient data"
+        
+        # Predict
+        prediction = self.model.predict([features])
+        return "Good credit risk" if prediction[0] else "Higher risk profile"
+
+# Initialize ML components
+fraud_detector = FraudDetector()
+finance_chatbot = FinanceChatbot()
+savings_predictor = SavingsPredictor()
+transaction_classifier = TransactionClassifier()
+credit_scorer = CreditScorer()
+
+# Background thread for model training
+def train_models_periodically():
+    while True:
+        try:
+            print("Training models...")
+            fraud_detector.train_model()
+            transaction_classifier.train_model()
+            credit_scorer.train_model()
+            print("Model training completed")
+            time.sleep(86400)  # Retrain daily
+        except Exception as e:
+            print(f"Model training failed: {e}")
+            time.sleep(3600)  # Retry in 1 hour
+
+# Start training thread only after DB initialization
+training_thread = None
+if not hasattr(sys, '_called_from_test'):  # Only start in production
+    training_thread = threading.Thread(target=train_models_periodically, daemon=True)
+    training_thread.start()
+
+
+# Database migration for existing installations
+try:
+    # Check if old table structure exists
+    cursor.execute("PRAGMA table_info(savings_goals_history)")
+    columns = [row[1] for row in cursor.fetchall()]
+    
+
+
+    if 'current_amount' not in columns:
+        print("Migrating savings_goals_history table...")
+        
+        # Create temporary table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS savings_goals_history_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                goal_id INTEGER,
+                contribution_amount REAL,
+                current_amount REAL,
+                timestamp TEXT,
+                FOREIGN KEY(goal_id) REFERENCES savings_goals(id)
+            )
+        ''')
+        
+        # Migrate existing data
+        cursor.execute("SELECT * FROM savings_goals_history")
+        for row in cursor.fetchall():
+            goal_id, amount, timestamp = row[1], row[2], row[3]
+            
+            # Get the cumulative amount at that point
+            cursor.execute("""
+                SELECT current_amount 
+                FROM savings_goals 
+                WHERE id=? 
+                AND created_at <= ?
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (goal_id, timestamp))
+            current_amount = cursor.fetchone()[0] if cursor.fetchone() else 0
+            
+            # Insert into new table
+            cursor.execute("""
+                INSERT INTO savings_goals_history_new 
+                (goal_id, contribution_amount, current_amount, timestamp)
+                VALUES (?, ?, ?, ?)
+            """, (goal_id, amount, current_amount, timestamp))
+        
+        # Replace old table
+        cursor.execute("DROP TABLE savings_goals_history")
+        cursor.execute("ALTER TABLE savings_goals_history_new RENAME TO savings_goals_history")
+        conn.commit()
+        print("Migration complete")
+except Exception as e:
+    print(f"Migration failed: {e}")
+    conn.rollback()
+
+
+def test_fraud_detection():
+    """Run tests to verify fraud detection"""
+    try:
+        # Create a separate database connection
+        test_conn = sqlite3.connect("bank.db")
+        test_cursor = test_conn.cursor()
+        
+        print("\n=== Testing Fraud Detection ===")
+        
+        # Create test account
+        test_acc = Account(
+            name="Test User",
+            account_number="9999999999",
+            pin="1234",
+            username="testuser",
+            national_id="TEST001",
+            address="Test Address"
+        )
+        
+        # Save using test connection
+        test_cursor.execute(
+            "INSERT INTO accounts (account_number, name, pin, username, national_id, address, balance, created_at, is_active, is_admin) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (test_acc.account_number, test_acc.name, test_acc.pin, test_acc.username, 
+             test_acc.national_id, test_acc.address, test_acc.balance, 
+             test_acc.created_at, test_acc.is_active, test_acc.is_admin)
+        )
+        test_conn.commit()
+        
+        # Deposit using test connection
+        test_acc.balance += 10000
+        test_cursor.execute("UPDATE accounts SET balance=? WHERE account_number=?", 
+                         (test_acc.balance, test_acc.account_number))
+        
+        # Record transaction
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        test_cursor.execute("""
+            INSERT INTO transactions 
+            (account_number, type, amount, description, timestamp, reference_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (test_acc.account_number, "Deposit", 10000, "Initial funding", timestamp, "TEST_DEPOSIT"))
+        test_conn.commit()
+        
+        # Test 1: Normal transaction ($100)
+        print("\nTest 1: Normal transaction ($100)")
+        test_acc.balance -= 100
+        test_cursor.execute("UPDATE accounts SET balance=? WHERE account_number=?", 
+                         (test_acc.balance, test_acc.account_number))
+        test_cursor.execute("""
+            INSERT INTO transactions 
+            (account_number, type, amount, description, timestamp, reference_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (test_acc.account_number, "Withdrawal", -100, "Test withdrawal 1", timestamp, "TEST_WD1"))
+        test_conn.commit()
+
+
+        # Cleanup
+        test_cursor.execute("DELETE FROM accounts WHERE account_number=?", (test_acc.account_number,))
+        test_cursor.execute("DELETE FROM transactions WHERE account_number=?", (test_acc.account_number,))
+        test_conn.commit()
+        
+        test_cursor.close()
+        test_conn.close()
+        print("=== Fraud Tests Complete ===")
+    except Exception as e:
+        print(f"Test failed: {str(e)}")
