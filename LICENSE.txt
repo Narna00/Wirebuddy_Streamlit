@@ -2,13 +2,13 @@ PROPRIETARY LICENSE AGREEMENT
 Copyright (c) 2025 Group 3. All Rights Reserved.
 
 1. OWNERSHIP  
-   This software ("Banking System") and all associated code, documentation,  
+   This software ("Wirebuddy") and all associated code, documentation,  
    and materials are the exclusive property of Group 3 and are  
    protected under copyright law.
 
 2. GRANT OF LIMITED LICENSE  
    Permission is hereby granted ONLY TO AUTHORIZED USERS (explicitly named  
-   in writing by Prince Amoako Atta) to:  
+   in writing by Wirebuddy Admin) to:  
    - Use the software for internal purposes  
    - Modify the software ONLY for authorized purposes  
    NO OTHER RIGHTS ARE GRANTED.
