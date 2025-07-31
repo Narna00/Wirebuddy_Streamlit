@@ -1370,7 +1370,7 @@ st.markdown("""
             width: 100%;
             border-radius: 5px;
             font-weight: bold;
-            font-size: 12px !important;    /* <-- added */
+            font-size: 11px !important;    /* <-- added */
             padding: 4px 8px !important;    /* optional: tighten spacing */
         }
         .stTextInput>div>div>input, .stNumberInput>div>div>input {
