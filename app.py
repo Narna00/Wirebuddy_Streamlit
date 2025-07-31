@@ -10,6 +10,15 @@ from io import StringIO
 import streamlit as st
 import streamlit.components.v1 as components
 
+def validate_phone(phone):
+    """Validates Ghanaian phone numbers (10 digits starting with 0)"""
+    phone = str(phone).strip()
+    return len(phone) == 10 and phone.startswith('0') and phone.isdigit()
+
+def validate_pin(pin):
+    """Validates 4-digit numeric PIN"""
+    return str(pin).isdigit() and len(str(pin)) == 4
+
 
 # Configuration
 st.set_page_config(page_title="SmartBank", layout="wide", page_icon="🏦")
