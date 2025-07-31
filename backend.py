@@ -44,18 +44,18 @@ def execute_with_retry(query, params=()):
 
 
 
-# Create otps table
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS otps (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    phone TEXT NOT NULL,
-    otp TEXT NOT NULL,
-    purpose TEXT NOT NULL,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    expires_at TEXT NOT NULL
-)
-''')
-conn.commit()
+# # Create otps table
+# cursor.execute('''
+# CREATE TABLE IF NOT EXISTS otps (
+#     id INTEGER PRIMARY KEY AUTOINCREMENT,
+#     phone TEXT NOT NULL,
+#     otp TEXT NOT NULL,
+#     purpose TEXT NOT NULL,
+#     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+#     expires_at TEXT NOT NULL
+# )
+# ''')
+# conn.commit()
 
 # Create accounts table
 def create_tables():
@@ -524,9 +524,9 @@ if not cursor.fetchone():
     try:
         admin = Account(
             name="Admin User",
-            account_number= st.secrets["admin_number"],
-            pin= st.secrets["admin_pin"],
-            username= st.secrets["admin_username"],
+            account_number="admin_number",
+            pin="admin_pin",
+            username="admin_username",
             national_id="ADMIN000",
             address="Bank Headquarters",
             is_admin=True
