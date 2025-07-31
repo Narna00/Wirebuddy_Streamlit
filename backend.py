@@ -190,6 +190,7 @@ CREATE TABLE IF NOT EXISTS savings_goals_history (
     )
 ''')
 
+
 class Account:
     def __init__(self, name, account_number, pin, username, national_id, address,
                  balance=0.0, created_at=None, is_active=True, is_admin=False):
@@ -521,6 +522,25 @@ class Account:
         """, (goal_id, self.account_number))
         conn.commit()
         return cursor.rowcount > 0
+
+def initialize_admin_account():
+    """Ensure default admin account exists"""
+    try:
+        cursor.execute("SELECT * FROM accounts WHERE is_admin = 1")
+        if not cursor.fetchone():
+            admin = Account(
+                name="Admin User",
+                account_number="0000000000",  # 10 digits
+                pin="0000",                  # 4-digit PIN
+                username="admin",
+                national_id="ADMIN000",
+                address="Bank Headquarters",
+                is_admin=True
+            )
+            admin.save_to_db()
+            print("Default admin created")
+    except Exception as e:
+        print(f"Error creating admin: {e}")
 
 
 class CurrencyConverter:
