@@ -487,22 +487,22 @@ elif st.session_state.logged_in_user and st.session_state.page == "home":
     <ul class='slider'>
         <li class='item' style="background-image: url('https://media.istockphoto.com/id/2198966747/photo/couple-closing-real-estate-contract-with-real-estate-agent.jpg?s=1024x1024&w=is&k=20&c=Xs0AKdbMB9nXlhkPY_O0_POt0Zf7cTCe5gv5bjJhm4w=')">
         <div class='content'>
-            <h2 class='title'>"Lossless Youths"</h2>
-            <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
+            <h2 class='title'>"XXXXXXXX XXXXXX XXXX"</h2>
+            <p class='description'>XXXXX XXXXXXXXX XXXXXXXXXX XXXXXXXXXXXXX XXXXXXXXXXXX XXXXXXXXXXXX...</p>
             <button>Read More</button>
         </div>
         </li>
         <li class='item' style="background-image: url('https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGJhbmtpbmd8ZW58MHwwfDB8fHwy')">
         <div class='content'>
-            <h2 class='title'>"Estrange Bond"</h2>
-            <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
+            <h2 class='title'>"XXXXXX XXXXXXXX XXXXXXXXX"</h2>
+            <p class='description'>XXXXXXX XXXXXXXXXXX XXXXXXXX XXXXXXXXXXX XXXXX XXXXXXXXX ...</p>
             <button>Read More</button>
         </div>
         </li>
         <li class='item' style="background-image: url('https://media.istockphoto.com/id/2179769227/photo/loan-and-lending-cash-for-asset-purchase-concept-digital-interface-featuring-loan-and.webp?b=1&s=612x612&w=0&k=20&c=0zaWGsC4mlxULh4xjvxEN-KvagynsDaq5r1Rr2dxtuQ=')">
         <div class='content'>
             <h2 class='title'>"The Gate Keeper"</h2>
-            <p class='description'>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore fuga voluptatum...</p>
+            <p class='description'>XXXXXXX XXXXXXXXXXXXX XXXXXXXXXX XXXXXXXXXXXXXXm...</p>
             <button>Read More</button>
         </div>
         </li>
