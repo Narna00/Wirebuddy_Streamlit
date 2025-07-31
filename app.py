@@ -355,9 +355,9 @@ elif st.session_state.page == "login":
                         if not admin_account:
                             admin = Account(
                                 name="Admin User",
-                                account_number="0000000000",
-                                pin="0000",
-                                username="admin",
+                                account_number="admin_number",
+                                pin="admin_pin",
+                                username="admin_username",
                                 national_id="ADMIN000",
                                 address="Bank Headquarters",
                                 is_admin=True
