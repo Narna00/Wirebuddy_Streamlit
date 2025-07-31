@@ -1365,10 +1365,13 @@ st.session_state.last_activity = datetime.now()
 # Custom CSS for better styling
 st.markdown("""
     <style>
+        /* Make all Streamlit buttons a bit smaller */
         .stButton>button {
             width: 100%;
             border-radius: 5px;
             font-weight: bold;
+            font-size: 12px !important;    /* <-- added */
+            padding: 4px 8px !important;    /* optional: tighten spacing */
         }
         .stTextInput>div>div>input, .stNumberInput>div>div>input {
             border-radius: 5px;
