@@ -1,5 +1,5 @@
 PROPRIETARY LICENSE AGREEMENT  
-Copyright (c) 2025 Group 3. All Rights Reserved.
+Copyright (c) 2025 Magnifiers. All Rights Reserved.
 
 1. OWNERSHIP  
    This software ("Wirebuddy") and all associated code, documentation,  
@@ -23,8 +23,8 @@ Copyright (c) 2025 Group 3. All Rights Reserved.
    be deleted or returned.
 
 5. LIABILITY  
-   This software is provided "AS IS" without warranty. Group 3  
-   is not liable for damages arising from its use.
+   This software is provided "AS IS" without warranty. The Magnifiers
+   are not liable for damages arising from its use.
 
 6. GOVERNING LAW  
    This agreement is governed by the laws of the Republic of Ghana.
@@ -32,3 +32,4 @@ Copyright (c) 2025 Group 3. All Rights Reserved.
 CONTACT:  
 For licensing inquiries, contact: princeamoakoatta22@gmail.com.  
 Unauthorized use will face legal action.
+
