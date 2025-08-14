@@ -1,6 +1,6 @@
 # WireBuddy – Smart Transaction App
 
-WireBuddy is an intelligent transaction management and payment app that integrates **Machine Learning** for anomaly detection, savings goals, payment requests, and more. Built with a clean interface and a secure backend, it is designed for both users and administrators.
+WireBuddy is an intelligent transaction management and payment app that integrates **Machine Learning** for anomaly detection, savings goals, financial literacy, and more. Built with a clean interface and a secure backend, it is designed for both users and administrators.
 
 ---
 
